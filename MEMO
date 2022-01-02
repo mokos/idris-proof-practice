@@ -1,0 +1,3 @@
+1. $ idris a.idr
+2. $ :e
+3. use vim-idris command (ex. \d)
