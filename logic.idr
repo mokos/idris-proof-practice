@@ -16,6 +16,8 @@ or交換 (Right b) = Left  b
 and交換 : (a, b) -> (b, a)
 and交換 (a, b) = (b, a)
 
+nand交換 : Not (a, b) -> Not (b, a)
+nand交換 nab (b, a) = nab (a, b)
 
 同語反復 : {P : Type} -> P -> P
 同語反復 p = p
@@ -59,8 +61,17 @@ and交換 (a, b) = (b, a)
 対偶 : (a->b) -> (Not b -> Not a)
 対偶 hab nb a = nb (hab a)
 
+ならば否定をnandに : (a -> Not b) -> Not (a, b)
+ならば否定をnandに anb (a, b) = (anb a) b
+
 ならばをnandに : (a->b) -> Not (a, Not b)
 ならばをnandに ab (a, nb) = nb (ab a)
+
+nandをならばに : Not (p, q) -> (p -> Not q)
+nandをならばに nab p q = nab (p, q)
+
+ならば否定交換 : (a -> Not b) -> (b -> Not a)
+ならば否定交換 anb b a = (anb a) b
 
 --ならばをORにするのは排中律に等しい
 
@@ -114,7 +125,7 @@ or消去法 (Right b, _) = b
   ({a, b : Type} -> ((a -> b) -> a) -> a) -> 二重否定除去
 パースの法則を仮定すると二重否定除去 h nnp = h (void . nnp)
 
--- ちょっとずるい。普通のNANDだとどうやるのか
+-- 普通のNANDだとどうやるのか -> できない。ドモルガン論理
 ドモルガン亜種を仮定すると排中律 :
   ({a, b : Type} -> Not (Not a, Not b) -> Either a b) -> 排中律
 ドモルガン亜種を仮定すると排中律 h = h 真かつ偽は矛盾
@@ -154,14 +165,11 @@ or消去法 (Right b, _) = b
 弱排中律 : Type
 弱排中律 = {P : Type} -> Either (Not (Not P)) (Not P)
 
-ドモルガン : Type
-ドモルガン = {P, Q : Type} -> Not (P, Q) -> Either (Not P) (Not Q)
+ドモルガンnand : Type
+ドモルガンnand = {P, Q : Type} -> Not (P, Q) -> Either (Not P) (Not Q)
 
-ドモルガンを仮定すると弱排中律 : ドモルガン -> 弱排中律
+ドモルガンを仮定すると弱排中律 : ドモルガンnand -> 弱排中律
 ドモルガンを仮定すると弱排中律 h = or交換 $ h 真かつ偽は矛盾
-
-nandをならばに : Not (p, q) -> (p -> Not q)
-nandをならばに nab p q = nab (p, q)
 
 弱排中律を仮定するとドモルガンnand :
   ((a : Type) -> Either (Not (Not a)) (Not a)) ->

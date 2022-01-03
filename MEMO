@@ -1,3 +1,8 @@
+# vim idrris mode
 1. $ idris a.idr
 2. $ :e
 3. use vim-idris command (ex. \d)
+
+# 同値
+同値の命題の置き換えのやり方？
+同値の定義の仕方？
