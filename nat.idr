@@ -1,8 +1,11 @@
 %hide Nat
 %hide Nat.lt
 %hide Nat.gt
+%hide (||)
 
 %default total
+
+data (||) a b = L a | R b
 
 対偶 : (a->b) -> (Not b -> Not a)
 対偶 hab nb a = nb (hab a)
@@ -36,10 +39,10 @@ oneIsNotSuccSucc : {n : N} -> Not (S O=S (S n))
 oneIsNotSuccSucc Refl impossible
 
 -- Peano axiom 4
-succが同じなら同じ : { m, n : N } -> (S m)=(S n) -> m=n
+succが同じなら同じ : {m, n : N} -> S m=S n -> m=n
 succが同じなら同じ = believe_me "axiom"
 
-違うならsuccも違う : { m, n : N } -> Not (m=n) -> Not (S m=S n)
+違うならsuccも違う : {m, n : N} -> Not (m=n) -> Not (S m=S n)
 違うならsuccも違う = 対偶 succが同じなら同じ
 
 (+) : N -> N -> N
@@ -138,52 +141,45 @@ data (<) : (m, n : N) -> Type where
 m > n = n < m
 
 (<=) : (m, n : N) -> Type
-m <= n = Either (m<n) (m=n)
+m <= n = (m<n) || (m=n)
 
 (>=) : (m, n : N) -> Type
-m >= n = Either (m>n) (m=n)
+m >= n = (m>n) || (m=n)
 
-infix 0 <>
+infix 4 <>
 (<>) : (m, n : N) -> Type
-m <> n = Either (m<n) (m>n)
+m <> n = (m<n) || (m>n)
 
 notLtZero : {n : N} -> Not (n<O)
 notLtZero _ impossible
 
 -- 不等号の別の定義も同値
-infix 0 <.
+infix 4 <.
 (<.) : (m, n : N) -> Type
 m <. n = (d : N ** m+(S d)=n)
+
+--E : Type
 
 ltImplyLt2 : {m, n : N} -> m<n -> m<.n
 ltImplyLt2 {m=O}{n=S d} LtZero = (d ** Refl)
 ltImplyLt2 {m=S a}{n=S b} (LtSucc x) with (ltImplyLt2 x)
-  | MkDPair d f = MkDPair d (rewrite f in Refl)
+  | (d ** f) = (d ** rewrite f in Refl)
 
 lt2ImplyLt : {m, n : N} -> m<.n -> m<n
-lt2ImplyLt {m=O} (MkDPair d eq) = rewrite sym eq in LtZero
-lt2ImplyLt {m=m}{n=O} (MkDPair d eq) =
+lt2ImplyLt {m=O} (d ** eq) = rewrite sym eq in LtZero
+lt2ImplyLt {m=m}{n=O} (d ** eq) =
   void $ succIsNotZero {n=m+d} (rewrite sym (addSucc m d) in eq)
-lt2ImplyLt {m=S a}{n=S b} (MkDPair d eq) =
-  LtSucc $ lt2ImplyLt (MkDPair d (succが同じなら同じ eq))
+lt2ImplyLt {m=S a}{n=S b} (d ** eq) =
+  LtSucc $ lt2ImplyLt (d ** succが同じなら同じ eq)
 
-
-data Either3 a b c = Left a | Middle b | Right c
-
-ltOrEqOrGt : (m, n : N) -> Either3 (m<n) (m=n) (m>n)
-ltOrEqOrGt O O = Middle Refl
-ltOrEqOrGt O (S n) = Left LtZero
-ltOrEqOrGt (S m) O = Right LtZero
-ltOrEqOrGt (S a) (S b) with (ltOrEqOrGt a b)
-  | Middle eq = Middle (rewrite eq in Refl)
-  | Left   lt = Left $ LtSucc lt
-  | Right  gt = Right $ LtSucc gt
-
-eqOrIneq : (m, n : N) -> Either (m=n) (m<>n)
-eqOrIneq m n with (ltOrEqOrGt m n)
-  | Middle eq = Left eq
-  | Left   lt = Right $ Left  lt
-  | Right  gt = Right $ Right gt
+eqOrIneq : (m, n : N) -> (m=n) || (m<>n)
+eqOrIneq O O = L Refl
+eqOrIneq O (S n) = R $ L LtZero
+eqOrIneq (S m) O = R $ R LtZero
+eqOrIneq (S a) (S b) with (eqOrIneq a b)
+  | L eq = L $ rewrite eq in Refl
+  | R (L lt) = R $ L $ LtSucc lt
+  | R (R gt) = R $ R $ LtSucc gt
 
 ltImplyNeq : {m, n : N} -> m<n -> Not (m=n)
 ltImplyNeq LtZero = zeroIsNotSucc
@@ -192,21 +188,21 @@ ltImplyNeq (LtSucc x) = 違うならsuccも違う $ ltImplyNeq x
 gtImplyNeq : {m, n : N} -> m>n -> Not (m=n)
 gtImplyNeq gt = ltImplyNeq gt . sym
 
-eqOrNeq : (m, n : N) -> Either (m=n) (Not (m=n))
-eqOrNeq m n with (ltOrEqOrGt m n)
-  | Middle eq = Left eq
-  | Left   lt = Right $ ltImplyNeq lt
-  | Right  gt = Right $ ltImplyNeq gt . sym
+eqOrNeq : (m, n : N) -> (m=n) || (Not (m=n))
+eqOrNeq m n with (eqOrIneq m n)
+  | L eq = L eq
+  | R (L lt) = R $ ltImplyNeq lt
+  | R (R gt) = R $ ltImplyNeq gt . sym
 
 neqImplyIneq : {m, n : N} -> Not (m=n) -> m<>n
-neqImplyIneq {m=m}{n=n} h with (ltOrEqOrGt m n)
-  | Left lt = Left lt
-  | Right gt = Right gt
-  | Middle eq = void $ h eq
+neqImplyIneq {m=m}{n=n} h with (eqOrIneq m n)
+  | L eq = void $ h eq
+  | R (L lt) = L lt
+  | R (R gt) = R gt
 
 ineqImplyNeq : {m, n : N} -> m<>n -> Not (m=n)
-ineqImplyNeq (Left  lt) = ltImplyNeq lt
-ineqImplyNeq (Right gt) = gtImplyNeq gt
+ineqImplyNeq (L lt) = ltImplyNeq lt
+ineqImplyNeq (R gt) = gtImplyNeq gt
 
 notLtAndGt : {m, n : N} -> Not (m<n, m>n) 
 notLtAndGt (LtSucc l, LtSucc g) = notLtAndGt (l, g)
@@ -214,69 +210,107 @@ notLtAndGt (LtSucc l, LtSucc g) = notLtAndGt (l, g)
 ltImplyNgt : {m, n : N} -> m<n -> Not (m>n) 
 ltImplyNgt = nandをならばに notLtAndGt
 
-notEqAndLt : {m, n : N} -> Not (m=n, m<n)
-notEqAndLt = nand交換 $ ならば否定をnandに ltImplyNeq
-
-notEqAndGt : {m, n : N} -> Not (m=n, m>n)
-notEqAndGt = nand交換 $ ならば否定をnandに gtImplyNeq
-
 eqImplyNlt : {m, n : N} -> m=n -> Not (m<n)
-eqImplyNlt = nandをならばに notEqAndLt
+eqImplyNlt = ならば否定交換 ltImplyNeq
 
 eqImplyNgt : {m, n : N} -> m=n -> Not (m>n)
-eqImplyNgt = nandをならばに notEqAndGt
+eqImplyNgt = ならば否定交換 gtImplyNeq
 
 ltToLte : {m, n : N} -> m<n -> (S m)<=n
-ltToLte {m=O}{n=S O} LtZero = Right Refl
-ltToLte {m=O}{n=S (S b)} LtZero = Left $ LtSucc $ LtZero
+ltToLte {m=O}{n=S O} LtZero = R Refl
+ltToLte {m=O}{n=S (S b)} LtZero = L $ LtSucc $ LtZero
 ltToLte (LtSucc x) with (ltToLte x)
-  | Left lt = Left $ LtSucc lt
-  | Right eq = Right (rewrite eq in Refl)
+  | L lt = L $ LtSucc lt
+  | R eq = R $ rewrite eq in Refl
 
 
+notLtSelf : {n : N} -> Not (n<n)
+notLtSelf = eqImplyNlt Refl
 
-正整数を足すと大きくなる : (m, n : N) -> m<m+S(n)
-正整数を足すと大きくなる O _ = LtZero
-正整数を足すと大きくなる (S m) n =
-  LtSucc $ 正整数を足すと大きくなる m n
+zeroOrGtZero : (n : N) -> (n=O) || (n>O)
+zeroOrGtZero O = L Refl
+zeroOrGtZero (S n) = R LtZero
 
---正整数に1より大をかけると大きくなる :
-  --(m, n : N) -> {cond : (m>O, n>I)} -> m<m*n
---正整数に1より大をかけると大きくなる O O impossible
+正整数を足すと大きくなる : (n, p : N) -> {auto nz : p>O} -> n<n+p
+正整数を足すと大きくなる _ O {nz=nz} = void $ notLtZero nz
+正整数を足すと大きくなる n (S d) = lt2ImplyLt (d ** Refl)
+
+ltAddNat : {k, m, n : N} -> m<n -> m+k<n+k
+ltAddNat {k=O}{m=m}{n=n} lt = rewrite addZero n in rewrite addZero m in lt
+ltAddNat {k=S a}{m=O}{n=S c} LtZero =
+  rewrite 加法交換則 (S c) (S a) in
+  正整数を足すと大きくなる (S a) (S c)
+ltAddNat (LtSucc x) = LtSucc $ ltAddNat x 
+
+ltMulPos : {m, n, k : N} -> {auto nz : k>O} -> m<n -> m*k<n*k
+ltMulPos {k=O}{nz=nz} _ = void $ notLtZero nz
+ltMulPos {k=S a}{n=O} lt = void $ notLtZero lt
+ltMulPos {k=S a}{m=O}{n=S c} lt = LtZero
+ltMulPos {k=k}{m=S b}{n=S c} (LtSucc x) =
+  rewrite 加法交換則 k (c*k) in
+  rewrite 加法交換則 k (b*k) in
+  ltAddNat {k=k} (ltMulPos {k=k}{m=b}{n=c} x)
+
+大に足しても大 : {m, n : N} -> m<n -> (k : N) -> m<n+k
+大に足しても大 LtZero k = LtZero
+大に足しても大 (LtSucc x) k = LtSucc $ 大に足しても大 x k
+
+大に正整数をかけても大 :
+  {m, n : N} -> m<n -> (p : N) -> {auto nz : p>O} -> m<n*p
+大に正整数をかけても大 _ O impossible
+大に正整数をかけても大 {n=n} lt (S p) = 
+  rewrite mulSucc n p in 大に足しても大 lt (n*p)
 
 
+正整数に2以上をかけると大きくなる :
+  (m, n : N) -> {auto cond : (m>O, n>I)} -> m<m*n
+正整数に2以上をかけると大きくなる m n {cond=(m1, n2)} =
+  rewrite 乗法交換則 m n in
+  rewrite sym $ oneMul m in
+  rewrite sym $ 乗法結合則 n (S O) m in
+  rewrite mulOne n in
+  ltMulPos {k=m} n2
 
-正整数をかけると減らない : {x, y : N} -> x*(S y)>=x
-正整数をかけると減らない {x=x}{y=O} = Right $ rewrite mulOne x in Refl
-正整数をかけると減らない {x=O}{y=y} = Right $ Refl
-正整数をかけると減らない {x=S a}{y=S b} = ?hole
---mulSucc : (m, n : N) -> m * (S n) = m + (m * n)
+正整数をかけると減らない : {n, p : N} -> {auto nz : p>O} -> n<=n*p
+正整数をかけると減らない {p=O} impossible
+正整数をかけると減らない {n=O} = R $ Refl
+正整数をかけると減らない {n=n}{p=S O} = R $ rewrite mulOne n in Refl
+正整数をかけると減らない {n=S a}{p=S (S b)} = 
+  L $ 正整数に2以上をかけると大きくなる (S a) (S (S b))
 
 
 -- 'x div y' means 'x dividable by y'
 div : (x, y : N) -> {auto nz : (x>O, y>O)} -> Type
-div x y = (k : N ** (k<=x, x=y*k))
+div x y = (k : N ** x=y*k)
+  
+正整数は1で割り切れる : (p : N) -> {auto nz : p>O} -> p `div` I
+正整数は1で割り切れる p = (p ** rewrite addZero p in Refl)
 
-より大きい数では割り切れない :
-  {x, y : N} -> {auto nz : (x>O, y>O)} -> x<y -> Not (x `div` y)
-より大きい数では割り切れない {y=y}{nz=(xx,yy)} lt div with (div)
-  | (MkDPair O (_, f)) = (gtImplyNeq xx) $ rewrite sym (mulZero y) in f
-  | (MkDPair (S k) (_, f)) = ?hole
+正整数は自身で割り切れる : (p : N) -> {auto nz : p>O} -> p `div` p
+正整数は自身で割り切れる p {nz=nz} = (I ** rewrite mulOne p in Refl)
 
-正整数は1で割り切れる : (n : N) -> {nz : n>O} -> n `div` I
-正整数は1で割り切れる n = (n ** (Right Refl, rewrite addZero n in Refl))
+正整数を割り切れるのはそれ以下の正整数 :
+  {x, y, z : N} -> {auto nz : x>O} -> x=y*z -> (O<z, z<=x)
+正整数を割り切れるのはそれ以下の正整数 {x=x}{y=y}{z=z}{nz=nz} xyz
+  with (zeroOrGtZero y)
+  | L y0 = void $ eqImplyNgt xyz $ rewrite y0 in nz
+  | R yp
+    with (zeroOrGtZero z)
+    | L z0 = void $ eqImplyNgt xyz $ rewrite z0 in rewrite mulZero y in nz
+    | R zp
+      with (eqOrIneq z x)
+      | L eq = (zp, R eq)
+      | R (L lt) = (zp, L lt)
+      | R (R gt) = void $ eqImplyNlt xyz $ rewrite 乗法交換則 y z in
+                                           大に正整数をかけても大 gt y
 
-
-正整数は自身で割り切れる : (n : N) -> {nz : n>O} -> n `div` n
---正整数は自身で割り切れる n {nz=nz} =
-  --(I ** (ltToLte nz, rewrite mulOne n in Refl))
 --
 --even : (n : N) -> Type
 --even n = dividableBy n (S (S O))
---
+
 --isPrime : (n : N) -> Type
---isPrime n = (x : N) -> x>O -> (n `dividableBy` x) -> Either (x=I) (x=n)
---
+--isPrime n = (x : N) -> x>O -> (n `div` x) -> (x=I) || (x=n)
+
 --twoIsPrime : isPrime (S (S O))
 --twoIsPrime O nz h
 
@@ -319,27 +353,6 @@ onePow (S n) = rewrite onePow n in Refl
   rewrite 乗法交換則 b (pow a n) in
   Refl
 
-minus : N -> N -> N
-minus m O = m
-minus O n = O
-minus (S m) (S n) = minus m n
-
-minusZero : (n : N) -> minus n O = n
-minusZero n = Refl
-
-minusSame : (n : N) -> minus n n = O
-minusSame O = Refl
-minusSame (S n) = rewrite minusSame n in Refl
-
-(-) : (m : N) -> (n : N) -> { auto smaller : n <= m }  -> N
-(-) m n {smaller} = minus m n
-
-
-data NonZero : (n : N) -> Type where
-  SuccIsNonZero : NonZero (S n)
-
 main : IO ()
 main = do
   putStrLn $ "Q.E.D."
-  --printLn $ Main.(-) III I { smaller = LteSucc LteZero }
-
