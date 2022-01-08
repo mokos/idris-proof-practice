@@ -1,11 +1,17 @@
-%hide Nat
-%hide Nat.lt
-%hide Nat.gt
 %hide (||)
-
 %default total
 
 data (||) a b = L a | R b
+
+xor : Type -> Type -> Type
+xor a b = (a, Not b) || (b, Not a)
+
+--infixr 3 /\
+--(/\) : a -> b -> (a, b)
+--a /\ b = (a, b)
+--
+--infixr 3 \/
+--data (\/) a b = Le a | Ri b
 
 対偶 : (a->b) -> (Not b -> Not a)
 対偶 hab nb a = nb (hab a)
@@ -19,24 +25,26 @@ nandをならばに nab p q = nab (p, q)
 ならば否定交換 : (a -> Not b) -> (b -> Not a)
 ならば否定交換 anb b a = (anb a) b
 
-nand交換 : Not (a, b) -> Not (b, a)
-nand交換 nab (b, a) = nab (a, b)
+
+infix 4 \=
+(\=) : a -> b -> Type
+a \= b = Not (a=b)
+
 
 -- Peano axiom 1, 2
+prefix 9 `S`
+
 data N = O | S N
 Show N where
   show O = "0"
   show (S n) = "S" ++ show n
 
 -- Peano axiom 3
-zeroIsNotSucc : {n : N} -> Not (O=S(n))
+zeroIsNotSucc : {n : N} -> Not (O=S n)
 zeroIsNotSucc Refl impossible
 
-succIsNotZero : {n : N} -> Not (S(n)=O)
+succIsNotZero : {n : N} -> Not (S n=O)
 succIsNotZero Refl impossible
-
-oneIsNotSuccSucc : {n : N} -> Not (S O=S (S n))
-oneIsNotSuccSucc Refl impossible
 
 -- Peano axiom 4
 succが同じなら同じ : {m, n : N} -> S m=S n -> m=n
@@ -60,15 +68,9 @@ addZero : (n : N) -> n + O = n
 addZero O = Refl
 addZero (S k) = rewrite addZero k in Refl
 
-addSucc : (m, n : N) -> m + (S n) = S (m + n)
+addSucc : (m, n : N) -> m + S n = S (m + n)
 addSucc O n = Refl
 addSucc (S m) n = rewrite addSucc m n in Refl
-
-和がゼロなら両方ゼロ : (m, n : N) -> m + n = O -> (m=O, n=O)
-和がゼロなら両方ゼロ O O h = (Refl, Refl)
-和がゼロなら両方ゼロ O (S m) h     = void $ (succIsNotZero h)  
-和がゼロなら両方ゼロ (S n) O h     = void $ (succIsNotZero h)  
-和がゼロなら両方ゼロ (S n) (S m) h = void $ (succIsNotZero h)
 
 加法交換則 : (m, n : N) -> m + n = n + m
 加法交換則 O n = rewrite addZero n in Refl
@@ -93,7 +95,7 @@ mulOne : (n : N) -> n * I = n
 mulOne O = Refl
 mulOne (S n) = rewrite mulOne n in Refl
 
-mulSucc : (m, n : N) -> m * (S n) = m + (m * n)
+mulSucc : (m, n : N) -> m * S n = m + (m * n)
 mulSucc O n = Refl
 mulSucc (S m) n =
   rewrite mulSucc m n in 
@@ -131,6 +133,13 @@ mulSucc (S m) n =
   rewrite 乗法結合則 a b c in
   Refl
 
+和が0なら両方0 : (m, n : N) -> m+n=O -> (m=O, n=O)
+和が0なら両方0 O O h = (Refl, Refl)
+和が0なら両方0 O (S m) h     = void $ (succIsNotZero h)  
+和が0なら両方0 (S n) O h     = void $ (succIsNotZero h)  
+和が0なら両方0 (S n) (S m) h = void $ (succIsNotZero h)
+
+
 -- 不等式
 
 data (<) : (m, n : N) -> Type where
@@ -150,15 +159,16 @@ infix 4 <>
 (<>) : (m, n : N) -> Type
 m <> n = (m<n) || (m>n)
 
+(/=) : a -> a -> Type
+x /= y = Not (x=y)
+
 notLtZero : {n : N} -> Not (n<O)
 notLtZero _ impossible
 
 -- 不等号の別の定義も同値
 infix 4 <.
 (<.) : (m, n : N) -> Type
-m <. n = (d : N ** m+(S d)=n)
-
---E : Type
+m <. n = (d : N ** m + S d =n)
 
 ltImplyLt2 : {m, n : N} -> m<n -> m<.n
 ltImplyLt2 {m=O}{n=S d} LtZero = (d ** Refl)
@@ -218,11 +228,10 @@ eqImplyNgt = ならば否定交換 gtImplyNeq
 
 ltToLte : {m, n : N} -> m<n -> (S m)<=n
 ltToLte {m=O}{n=S O} LtZero = R Refl
-ltToLte {m=O}{n=S (S b)} LtZero = L $ LtSucc $ LtZero
+ltToLte {m=O}{n=S S b} LtZero = L $ LtSucc $ LtZero
 ltToLte (LtSucc x) with (ltToLte x)
   | L lt = L $ LtSucc lt
   | R eq = R $ rewrite eq in Refl
-
 
 notLtSelf : {n : N} -> Not (n<n)
 notLtSelf = eqImplyNlt Refl
@@ -276,15 +285,18 @@ ltMulPos {k=k}{m=S b}{n=S c} (LtSucc x) =
 正整数をかけると減らない {n=O} = R $ Refl
 正整数をかけると減らない {n=n}{p=S O} = R $ rewrite mulOne n in Refl
 正整数をかけると減らない {n=S a}{p=S (S b)} = 
-  L $ 正整数に2以上をかけると大きくなる (S a) (S (S b))
+  L $ 正整数に2以上をかけると大きくなる (S a) (S S b)
 
 
 -- 'x div y' means 'x dividable by y'
-div : (x, y : N) -> {auto nz : (x>O, y>O)} -> Type
+div : (x, y : N) -> Type
 div x y = (k : N ** x=y*k)
   
 正整数は1で割り切れる : (p : N) -> {auto nz : p>O} -> p `div` I
 正整数は1で割り切れる p = (p ** rewrite addZero p in Refl)
+
+ゼロは自然数で割り切れる : (n : N) -> O `div` n
+ゼロは自然数で割り切れる n = (O ** rewrite mulZero n in Refl)
 
 正整数は自身で割り切れる : (p : N) -> {auto nz : p>O} -> p `div` p
 正整数は自身で割り切れる p {nz=nz} = (I ** rewrite mulOne p in Refl)
@@ -304,15 +316,38 @@ div x y = (k : N ** x=y*k)
       | R (R gt) = void $ eqImplyNlt xyz $ rewrite 乗法交換則 y z in
                                            大に正整数をかけても大 gt y
 
---
---even : (n : N) -> Type
---even n = dividableBy n (S (S O))
+正整数を割り切れるのはそれ以下の正整数' :
+  {x, y, z : N} -> {auto nz : x>O} -> x=y*z -> (O<y, y<=x)
+正整数を割り切れるのはそれ以下の正整数' {y=y}{z=z} xyz =
+  正整数を割り切れるのはそれ以下の正整数 {y=z}{z=y} 
+    (rewrite 乗法交換則 z y in xyz)
 
---isPrime : (n : N) -> Type
---isPrime n = (x : N) -> x>O -> (n `div` x) -> (x=I) || (x=n)
+--prime' : (x : N) -> Type
 
---twoIsPrime : isPrime (S (S O))
---twoIsPrime O nz h
+prime : (x : N) -> Type
+prime x = (y : N) -> (x `div` y) -> xor (y=I) (y=x)
+
+zeroIsNotPrime : Not (prime O)
+zeroIsNotPrime f with (f (S S O) (ゼロは自然数で割り切れる (S S O)))
+  | L (eq, neq) = 違うならsuccも違う succIsNotZero $ eq
+  | R (eq, neq) = succIsNotZero eq
+
+oneIsNotPrime : Not (prime I) 
+oneIsNotPrime f with (f I (正整数は1で割り切れる I))
+  | L (eq, neq) = neq eq
+  | R (eq, neq) = neq eq
+
+twoIsPrime : prime (S S O)
+twoIsPrime y (z ** f)
+  with (正整数を割り切れるのはそれ以下の正整数' f)
+  | (yp, R eq) = R (eq, rewrite eq in gtImplyNeq $ LtSucc LtZero)
+  | (yp, L lt) 
+    with (y)
+    | O = void $ notLtZero yp
+    | S O = L (Refl, ltImplyNeq $ LtSucc LtZero)
+    | (S S a)
+      with (lt)
+      | (LtSucc (LtSucc x)) = void $ notLtZero x
 
 -- etc
 pow : N -> N -> N
