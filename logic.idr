@@ -1,14 +1,5 @@
 %default total
 
---data 同値関係 : (P, Q : Type) -> (A : (p->q, q->p)) -> Type where
-  --Douti : 同値関係 p q (p->q, q->p)
-
-Douti : (p, q : Type) -> { same : (p->q, q->p) } -> Type
-Douti p q {same} = p
-
-g : (p : Type) -> Type
-g p = Douti p p { same = (id, id) }
-
 or交換 : Either a b -> Either b a
 or交換 (Left  a) = Right a
 or交換 (Right b) = Left  b
