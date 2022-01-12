@@ -1,6 +1,3 @@
-%hide (||)
-%hide (*)
-%hide (-)
 %default total
 
 -- logic
