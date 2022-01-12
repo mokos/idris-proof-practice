@@ -466,18 +466,12 @@ onePow (S n) = rewrite onePow n in Refl
   rewrite mul交換則 b (a^n) in
   Refl
 
-main : IO ()
-main = do
-  putStrLn $ "Q.E.D."
 
 互いに素 : (x, y : N) -> Type
 互いに素 x y = {d : N} -> (x |. d, y |. d) -> d=I
 
 -- ユークリッドの補題
 --f : (p : N) -> {c : prime p} -> (a*b) |. p -> a |. p || b |. p
-
---mod : (x, y : N) -> {auto nz : y>O} -> N
---mod 
 
 modEq : (n, x, y : N) -> Type
 modEq n x y = (a : N ** b : N ** x+n*a = y+n*b)
@@ -828,3 +822,9 @@ z分配則 = theorem where
   theorem : (a, b, c : Z) -> a *. (b+.c) = a*.b +. a*.c 
   theorem (Pos an) b c = fp an b c
   theorem (Neg an) b c = fn an b c
+
+
+
+main : IO ()
+main = do
+  putStrLn $ "Q.E.D."
