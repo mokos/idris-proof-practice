@@ -5,7 +5,7 @@
 # 方針
 ## できるだけPreludeの機能を使わず自分で定義していく
 
-- Prelude.Natを使わない
+## Natを使わない
 ``` idris
 data N = O | S N
 ```
@@ -19,7 +19,8 @@ prefix 11 `S`
 とすると、S (S n)をSの演算子の優先順位が強くなってS S nと書けて地味にうれしい。
 (11は99とかでもいい。Haskellでは9が最大のようだが、Idrisでは違うみたい)
 
-- Eitherを使わない 
+## Eitherを使わない 
+
 Either は Left と Right の文字数が揃わないし文字数が多いので
 data (||) a b = L a | R b
 を定義して使う。
