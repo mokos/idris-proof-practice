@@ -112,9 +112,9 @@ x0 O = Refl
 x0 (S n) = rewrite x0 n in Refl
 
 -- l means one
-lx : (n : N) -> I * n = n
-lx O = Refl
-lx (S n) = rewrite lx n in Refl
+n1X : (n : N) -> I * n = n
+n1X O = Refl
+n1X (S n) = rewrite n1X n in Refl
 
 x1 : (n : N) -> n * I = n
 x1 O = Refl
@@ -353,7 +353,7 @@ lteMulNat (L lt) = ltMulNat lt
   (m, n : N) -> {auto c : (m>O, n>I)} -> m<m*n
 正整数に2以上をかけると大きくなる m n {c=(m1, n2)} =
   rewrite mul交換則 m n in
-  rewrite sym $ lx m in
+  rewrite sym $ n1X m in
   rewrite sym $ mul結合則 n (S O) m in
   rewrite x1 n in
   ltMulPos {k=m} n2
@@ -504,21 +504,17 @@ modEq推移律 {n}{x}{y}{z} ((a ** b ** xy), (c ** d ** yz)) =
     Refl))
 
 
+-- integer
 data Z = Pos N | Neg N
+
 negZeroIsZero : Neg O = Pos O
 negZeroIsZero = believe_me "definition"
 
---prefix 99 `zSucc`
-zSucc : Z -> Z
-zSucc (Pos n) = Pos (S n)
-zSucc (Neg O) = Pos I
-zSucc (Neg (S n)) = Neg n
+Oz : Z
+Oz = Pos O
 
-zPred : Z -> Z
-zPred (Neg n) = Neg (S n)
-zPred (Pos O) = Neg I
-zPred (Pos (S n)) = Pos n
-
+Iz : Z
+Iz = Pos I
 
 negate : Z -> Z
 negate (Pos n) = Neg n
@@ -537,85 +533,301 @@ zeroMinusN : (n : N) -> O-n = Neg n
 zeroMinusN O = rewrite negZeroIsZero in Refl
 zeroMinusN (S n) = Refl
 
+nMinusSelf : (n : N) -> n-n = Oz
+nMinusSelf O = Refl
+nMinusSelf (S n) = rewrite nMinusSelf n in Refl
+
+
 minus交換したらnegate : (n, m : N) -> n-m = negate (m-n)
 minus交換したらnegate O O = rewrite negZeroIsZero in Refl
 minus交換したらnegate O (S m) = Refl
 minus交換したらnegate (S n) O = Refl
 minus交換したらnegate (S n) (S m) = minus交換したらnegate n m
 
+
+
+zSucc : Z -> Z
+zSucc (Pos n) = Pos (S n)
+zSucc (Neg O) = Pos I
+zSucc (Neg (S n)) = Neg n
+
+zPred : Z -> Z
+zPred (Neg n) = Neg (S n)
+zPred (Pos O) = Neg I
+zPred (Pos (S n)) = Pos n
+
+zSuccPred : (a : Z) -> zSucc (zPred a) = a
+zSuccPred (Pos O) = rewrite negZeroIsZero in Refl
+zSuccPred (Neg O) = Refl
+zSuccPred (Pos (S n)) = Refl
+zSuccPred (Neg (S n)) = Refl
+
+zPredSucc : (a : Z) -> zPred (zSucc a) = a
+zPredSucc (Pos O) = Refl
+zPredSucc (Neg O) = rewrite negZeroIsZero in Refl
+zPredSucc (Pos (S n)) = Refl
+zPredSucc (Neg (S n)) = Refl
+
+
+posZadd : N -> Z -> Z
+posZadd O b = b
+posZadd (S n) b = zSucc $ posZadd n b
+
+negZadd : N -> Z -> Z
+negZadd O b = b
+negZadd (S n) b = zPred $ negZadd n b
+
 infixl 8 +.
-
 (+.) : Z -> Z -> Z
-(+.) (Pos a) (Pos b) = Pos (a+b)
-(+.) (Neg a) (Neg b) = Neg (a+b)
-(+.) (Pos a) (Neg b) = a-b
-(+.) (Neg a) (Pos b) = b-a
+(Pos n) +. b = posZadd n b
+(Neg n) +. b = negZadd n b
 
-z0Add : (a : Z) -> (Pos O) +. a = a
-z0Add (Pos n) = Refl
-z0Add (Neg n) = rewrite zeroMinusN n in Refl
+zPplusP : (a, b : N) -> Pos a +. Pos b = Pos (a+b)
+zPplusP O b = Refl
+zPplusP (S a) b = rewrite zPplusP a b in Refl
 
-negate分配則 : (a, b : Z) -> negate (a+.b) = (negate a) +. (negate b)
-negate分配則 (Pos n) (Pos m) = Refl
-negate分配則 (Neg n) (Neg m) = Refl
-negate分配則 (Pos n) (Neg m) =
-  rewrite minus交換したらnegate n m in
-  rewrite doubleNegElim (m - n) in Refl
-negate分配則 (Neg n) (Pos m) = rewrite minus交換したらnegate n m in Refl
+zNplusN : (a, b : N) -> Neg a +. Neg b = Neg (a+b)
+zNplusN O b = Refl
+zNplusN (S a) b = rewrite zNplusN a b in Refl
 
+zPplusN : (a, b : N) -> Pos a +. Neg b = a-b
+zPplusN O b = rewrite zeroMinusN b in Refl
+zPplusN (S a) b = rewrite zPplusN a b in rewrite f a b in Refl
+  where
+    f : (a, b : N) -> zSucc (a-b) = (S a - b)
+    f O O = Refl
+    f a O = Refl
+    f (S a) (S b) = rewrite f a b in Refl
 
-zAdd0 : (a : Z) -> a +. (Pos O) = a
-zAdd0 (Pos n) = rewrite sym $ add0 n in Refl
-zAdd0 (Neg n) = rewrite sym $ zeroMinusN n in Refl
+zNplusP : (a, b : N) -> Neg a +. Pos b = b-a
+zNplusP O b = Refl
+zNplusP (S a) b = rewrite zNplusP a b in rewrite f a b in Refl
+  where
+    f : (a, b : N) -> zPred (b-a) = (b - S a)
+    f O O = Refl
+    f a O = rewrite zeroMinusN a in Refl
+    f (S a) (S b) = rewrite f a b in Refl
+
+zPlusNegSelf : (a : Z) -> a +. negate a = Oz
+zPlusNegSelf (Pos n) = rewrite zPplusN n n in rewrite nMinusSelf n in Refl
+zPlusNegSelf (Neg n) = rewrite zNplusP n n in rewrite nMinusSelf n in Refl
+
 
 zAdd交換則 : (a, b : Z) -> a +. b = b +. a
-zAdd交換則 (Pos n) (Pos m) = rewrite add交換則 m n in Refl
-zAdd交換則 (Neg n) (Neg m) = rewrite add交換則 m n in Refl
-zAdd交換則 (Pos n) (Neg m) = Refl
-zAdd交換則 (Neg n) (Pos m) = Refl
+zAdd交換則 (Pos a) (Pos b) =
+  rewrite zPplusP a b in
+  rewrite zPplusP b a in
+  rewrite add交換則 a b in Refl
+zAdd交換則 (Neg a) (Neg b) =
+  rewrite zNplusN a b in
+  rewrite zNplusN b a in
+  rewrite add交換則 a b in Refl
+zAdd交換則 (Pos a) (Neg b) =
+  rewrite zPplusN a b in rewrite zNplusP b a in Refl
+zAdd交換則 (Neg a) (Pos b) =
+  rewrite zPplusN b a in rewrite zNplusP a b in Refl
 
-succPlusMinus : (a, b, c : N) -> (Pos (S a))+.(b-c) = (Pos a) +. (S b - c)
-succPlusMinus a b O = rewrite addSucc a b in Refl
-succPlusMinus a O (S c) = rewrite zeroMinusN c in Refl
-succPlusMinus a (S b) (S c) = succPlusMinus a b c
+zAdd0 : (a : Z) -> a +. Oz = a
+zAdd0 a = rewrite zAdd交換則 a Oz in Refl
+
+zSuccAdd : (a, b : Z) -> zSucc a +. b = zSucc (a +. b)
+zSuccAdd (Pos O) b = Refl
+zSuccAdd (Pos (S an)) b = Refl
+zSuccAdd (Neg O) b = Refl
+zSuccAdd (Neg (S an)) b = rewrite zSuccPred (negZadd an b) in Refl
+
+zPredAdd : (a, b : Z) -> zPred a +. b = zPred (a +. b)
+zPredAdd (Pos O) b = Refl
+zPredAdd (Pos (S an)) b = rewrite zPredSucc (posZadd an b) in Refl
+zPredAdd (Neg O) b = Refl
+zPredAdd (Neg (S an)) b = Refl
 
 
 zAdd結合則 : (a, b, c : Z) -> (a +. b) +. c = a +. (b +. c)
-zAdd結合則 a b c = theorem a b c
-  where
-    lemmma : (an : N) -> (b, c : Z) ->
-             (Pos an +. b) +. c = Pos an +. (b +. c)
-    lemmma O b c =
-      rewrite z0Add b in rewrite z0Add (b+.c) in Refl
-    lemmma an (Pos O) c =
-      rewrite add0 an in rewrite z0Add c in Refl
-    lemmma an (Neg O) c =
-      rewrite negZeroIsZero in rewrite z0Add c in Refl
-    lemmma an b (Pos O) =
-      rewrite zAdd0 b in rewrite zAdd0 (Pos an+.b) in Refl
-    lemmma an b (Neg O) =
-      rewrite negZeroIsZero in
-      rewrite zAdd0 b in rewrite zAdd0 (Pos an+.b) in Refl
-    lemmma (S an) (Pos bn) (Pos cn) =
-      rewrite add結合則 an bn cn in Refl
-    lemmma (S an) (Pos (S bn)) (Neg (S cn)) =
-      rewrite succPlusMinus an bn cn in
-      rewrite lemmma an (Pos (S bn)) (Neg cn) in Refl
-    lemmma (S an) (Neg (S bn)) (Pos (S cn)) =
-      rewrite succPlusMinus an cn bn in
-      rewrite lemmma an (Neg bn) (Pos (S cn)) in Refl
+zAdd結合則 = theorem where
+  f : (n : N) -> (b, c : Z) -> ((Pos n) +. b) +. c = (Pos n) +. (b +. c)
+  f O b c = Refl
+  f (S n) b c =
+    rewrite zSuccAdd (posZadd n b) c in
+    rewrite f n b c in Refl
 
-    theorem : (a, b, c : Z) -> (a +. b) +. c = a +. (b +. c)
-    theorem (Pos an) b c = lemmma an b c
-    theorem (Neg an) b c =
-      rewrite sym $ doubleNegElim (b+.c) in
-      rewrite sym $ negate分配則 (Pos an) (negate (b+.c)) in
-      rewrite negate分配則 b c in
-      rewrite sym $ lemmma an (negate b) (negate c) in
-      rewrite negate分配則 (Pos an +. negate b) (negate c) in
-      rewrite negate分配則 (Pos an) (negate b) in
-      rewrite doubleNegElim b in
-      rewrite doubleNegElim c in
-      Refl
+  g : (n : N) -> (b, c : Z) -> ((Neg n) +. b) +. c = (Neg n) +. (b +. c)
+  g O b c = Refl
+  g (S n) b c =
+    rewrite zPredAdd (negZadd n b) c in
+    rewrite g n b c in Refl
+
+  theorem : (a, b, c : Z) -> (a +. b) +. c = a +. (b +. c)
+  theorem (Pos an) b c = f an b c
+  theorem (Neg an) b c = g an b c
 
 
+
+
+posZmul : N -> Z -> Z
+posZmul O b = Oz
+posZmul (S n) b = b +. posZmul n b
+
+negZmul : N -> Z -> Z
+negZmul O b = Oz
+negZmul (S n) b = (negate b) +. negZmul n b
+
+infixl 9 *.
+(*.) : Z -> Z -> Z
+(Pos n) *. b = posZmul n b
+(Neg n) *. b = negZmul n b
+
+
+zPxP : (a, b : N) -> Pos a *. Pos b = Pos (a*b)
+zPxP O b = Refl
+zPxP (S a) b = rewrite zPxP a b in rewrite zPplusP b (a*b) in Refl
+
+zPxN : (a, b : N) -> Pos a *. Neg b = Neg (a*b)
+zPxN O b = rewrite negZeroIsZero in Refl
+zPxN (S a) b = rewrite zPxN a b in rewrite zNplusN b (a*b) in Refl
+
+zNxP : (a, b : N) -> Neg a *. Pos b = Neg (a*b)
+zNxP O b = rewrite negZeroIsZero in Refl
+zNxP (S a) b = rewrite zNxP a b in rewrite zNplusN b (a*b) in Refl
+
+zNxN : (a, b : N) -> Neg a *. Neg b = Pos (a*b)
+zNxN O b = Refl
+zNxN (S a) b = rewrite zNxN a b in rewrite zPplusP b (a*b) in Refl
+
+zMul交換則 : (a, b : Z) -> a *. b = b *. a
+zMul交換則 (Pos a) (Pos b) =
+  rewrite zPxP a b in
+  rewrite zPxP b a in
+  rewrite mul交換則 a b in Refl
+zMul交換則 (Pos a) (Neg b) =
+  rewrite zPxN a b in
+  rewrite zNxP b a in
+  rewrite mul交換則 a b in Refl
+zMul交換則 (Neg a) (Pos b) =
+  rewrite zPxN b a in
+  rewrite zNxP a b in
+  rewrite mul交換則 a b in Refl
+zMul交換則 (Neg a) (Neg b) =
+  rewrite zNxN a b in
+  rewrite zNxN b a in
+  rewrite mul交換則 a b in Refl
+
+zX0 : (a : Z) -> a *. Oz = Oz
+zX0 a = rewrite zMul交換則 a Oz in Refl
+
+z1X : (a : Z) -> Iz *. a = a
+z1X a = rewrite zAdd0 a in Refl
+
+zX1 : (a : Z) -> a *. Iz = a
+zX1 a = rewrite zMul交換則 a Iz in rewrite z1X a in Refl
+
+negateIsMulNeg1 : (a : Z) -> negate a = a *. (Neg I)
+negateIsMulNeg1 a =
+  rewrite zMul交換則 a (Neg I) in
+  rewrite zAdd交換則 (negate a) (Pos O) in Refl
+
+
+zsuccmul : (a, b : Z) -> zSucc a *. b = b +. a *. b
+zsuccmul (Pos n) b = Refl
+zsuccmul (Neg O) b = Refl
+zsuccmul (Neg (S n)) b =
+  rewrite sym $ zAdd結合則 b (negate b) (negZmul n b) in
+  rewrite zPlusNegSelf b in Refl
+
+
+zMul結合則 : (a, b, c :Z) -> (a*.b)*.c = a*.(b*.c)
+zMul結合則 (Pos a) (Pos b) (Pos c) =
+  rewrite zPxP a b in
+  rewrite zPxP b c in
+  rewrite zPxP (a*b) c in
+  rewrite zPxP a (b*c) in
+  rewrite mul結合則 a b c in Refl
+zMul結合則 (Pos a) (Pos b) (Neg c) =
+  rewrite zPxP a b in
+  rewrite zPxN b c in
+  rewrite zPxN (a*b) c in
+  rewrite zPxN a (b*c) in
+  rewrite mul結合則 a b c in Refl
+zMul結合則 (Pos a) (Neg b) (Pos c) =
+  rewrite zPxN a b in
+  rewrite zNxP b c in
+  rewrite zNxP (a*b) c in
+  rewrite zPxN a (b*c) in
+  rewrite mul結合則 a b c in Refl
+zMul結合則 (Pos a) (Neg b) (Neg c) =
+  rewrite zPxN a b in
+  rewrite zNxN b c in
+  rewrite zNxN (a*b) c in
+  rewrite zPxP a (b*c) in
+  rewrite mul結合則 a b c in Refl
+zMul結合則 (Neg a) (Pos b) (Pos c) =
+  rewrite zNxP a b in
+  rewrite zPxP b c in
+  rewrite zNxP (a*b) c in
+  rewrite zNxP a (b*c) in
+  rewrite mul結合則 a b c in Refl
+zMul結合則 (Neg a) (Pos b) (Neg c) =
+  rewrite zNxP a b in
+  rewrite zPxN b c in
+  rewrite zNxN (a*b) c in
+  rewrite zNxN a (b*c) in
+  rewrite mul結合則 a b c in Refl
+zMul結合則 (Neg a) (Neg b) (Pos c) =
+  rewrite zNxN a b in
+  rewrite zNxP b c in
+  rewrite zPxP (a*b) c in
+  rewrite zNxN a (b*c) in
+  rewrite mul結合則 a b c in Refl
+zMul結合則 (Neg a) (Neg b) (Neg c) =
+  rewrite zNxN a b in
+  rewrite zNxN b c in
+  rewrite zPxN (a*b) c in
+  rewrite zNxP a (b*c) in
+  rewrite mul結合則 a b c in Refl
+
+negateMul : (a, b : Z) -> negate (a*.b) = negate a *. b
+negateMul (Pos a) (Pos b) = rewrite zPxP a b in rewrite zNxP a b in Refl
+negateMul (Pos a) (Neg b) = rewrite zPxN a b in rewrite zNxN a b in Refl
+negateMul (Neg a) (Pos b) = rewrite zNxP a b in rewrite zPxP a b in Refl
+negateMul (Neg a) (Neg b) = rewrite zNxN a b in rewrite zPxN a b in Refl
+
+negateAdd : (a, b : Z) -> negate (a+.b) = negate a +. negate b
+negateAdd (Pos a) (Pos b) =
+  rewrite zPplusP a b in rewrite zNplusN a b in Refl
+negateAdd (Pos a) (Neg b) =
+  rewrite zPplusN a b in rewrite zNplusP a b in
+  rewrite minus交換したらnegate b a in Refl
+negateAdd (Neg a) (Pos b) =
+  rewrite zNplusP a b in rewrite zPplusN a b in
+  rewrite minus交換したらnegate a b in Refl
+negateAdd (Neg a) (Neg b) =
+  rewrite zNplusN a b in rewrite zPplusP a b in Refl
+
+
+z分配則 : (a, b, c : Z) -> a *. (b+.c) = a*.b +. a*.c
+z分配則 = theorem where
+  fp : (n : N) -> (b, c : Z) -> (Pos n)*.(b+.c) = (Pos n)*.b+.(Pos n)*.c 
+  fp O b c = Refl
+  fp (S an) b c =
+    let a = Pos an in
+    rewrite zAdd結合則 b (a*.b) (c+.a*.c) in
+    rewrite zAdd結合則 b c (a*.(b+.c)) in
+    rewrite zAdd交換則 (a*.b) (c+.a*.c) in
+    rewrite zAdd結合則 c (a*.c) (a*.b) in
+    rewrite zAdd交換則 b c in
+    rewrite fp an c b in
+    Refl
+
+  fn : (n : N) -> (b, c : Z) -> (Neg n)*.(b+.c) = (Neg n)*.b+.(Neg n)*.c 
+  fn an b c =
+    let a = Pos an in
+    rewrite sym $ negateMul a (b +. c) in
+    rewrite fp an b c in
+    rewrite negateAdd (a*.b) (a*.c) in
+    rewrite negateMul a b in
+    rewrite negateMul a c in
+    Refl
+
+  theorem : (a, b, c : Z) -> a *. (b+.c) = a*.b +. a*.c 
+  theorem (Pos an) b c = fp an b c
+  theorem (Neg an) b c = fn an b c
