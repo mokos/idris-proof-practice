@@ -370,68 +370,60 @@ lteMulNat (L lt) k = ltMulNat lt k
 正整数をかけると減らない {n}{p=S O} = R $ rewrite x1 n in Refl
 正整数をかけると減らない {n=S a}{p=S S b} = L $ 正整数に2以上をかけると大きくなる (S a) (S S b)
 
---t : (n, a, b : N) -> a*n = b*n+I -> n=I
---t n O b eq = void $ zeroIsNotSucc (replace (addSucc (b*n) O) eq)
-
 足しても同じなら足した数は0 : {a, d : N} -> a+d=a -> d=O
 足しても同じなら足した数は0 {d=O} eq = Refl
-足しても同じなら足した数は0 {a} {d=S dd} eq = void $ notLtSelf {n=a} $ lt2ImplyLt (dd ** eq)
+足しても同じなら足した数は0 {a}{d=S dd} eq = void $ notLtSelf {n=a} $ lt2ImplyLt (dd ** eq)
 
--- 同じものを足して同じなら同じ
 同じものを足して同じなら同じ : {a, b, d : N} -> a+d=b+d -> a=b
 同じものを足して同じなら同じ {a}{b}{d=O} eq = rewrite sym (add0 a) in rewrite sym (add0 b) in eq
-同じものを足して同じなら同じ {a}{b}{d=S dd} eq = 同じものを足して同じなら同じ {a}{b}{d=dd} eq_prev 
-  where
-    eq_prev : a+dd=b+dd
-    eq_prev = succが同じなら同じ $ rewrite sym (addSucc a dd) in replace (addSucc b dd) eq
+同じものを足して同じなら同じ {a}{b}{d=S dd} eq =
+  同じものを足して同じなら同じ {a}{b}{d=dd} eq_prev 
+    where
+      eq_prev : a+dd=b+dd
+      eq_prev = succが同じなら同じ $ rewrite sym (addSucc a dd) in replace (addSucc b dd) eq
 
--- S a + S d = S b + S d
+同じものを足して同じなら同じ' : {a, b, d : N} -> d+a=d+b -> a=b
+同じものを足して同じなら同じ' {a}{b}{d} eq =
+  同じものを足して同じなら同じ {a}{b}{d} $ rewrite (add交換則 a d) in replace (add交換則 d b) eq
 
--- f
-nの倍数とnの倍数に1を足したものが同じならnは1 : (n, a, b : N) -> a*n = b*n+I -> n=I
+nの倍数とnの倍数に1を足したものが同じならnは1 : {n, a, b : N} -> a*n = b*n+I -> n=I
 nの倍数とnの倍数に1を足したものが同じならnは1 = theorem where 
 
-  h : (n, a, b, d : N) -> a=b+S d -> a*n=b*n+(S d)*n
-  h n a b d eq_abd = rewrite eq_abd in rewrite (分配則 b (S d) n) in Refl
-
-  hh : (n, a, b, d : N) -> a*n=b*n+I -> a*n=b*n+(S d)*n -> b*n+I=b*n+(S d)*n
-  hh n a b d eq eq_abd = rewrite sym eq in rewrite sym eq_abd in Refl
-  hhh : (n, b, d : N) -> b*n+I=b*n+(S d)*n -> I=(S d)*n 
-
-
-  g : (n, a, b : N) -> {auto c : n>I} -> a*n = b*n+I -> n=I
-  g n a b eq with (lteOrGt a b)
-    -- 以下の2つによって矛盾を導く。
+  nが2以上のとき矛盾 : (n, a, b : N) -> {auto c : n>I} -> a*n = b*n+I -> Void
+  nが2以上のとき矛盾 n a b eq with (lteOrGt a b)
+    -- a<=bのとき、以下の2つによって矛盾を導く。
     -- 1. a<=b -> a*n<=b*n -> not (a*n>b*n)
     -- 2. eq -> a*n>.b*n -> a*n>b*n
-    | L lte = void $ lteImplyNgt (lteMulNat lte n) $ lt2ImplyLt (O ** sym eq)
+    | L lte = lteImplyNgt (lteMulNat lte n) $ lt2ImplyLt (O ** sym eq)
+    -- a>bのとき、a*n>b*nなのでa*n=b*n+1になりようがないことを示す。
     | R gt_ab with (ltImplyLt2 gt_ab)
-      | (d ** f) = ?h-- f = a = b + S d
-        -- a*n = b*n + D*n
-        -- a*n = b*n + I
-        -- rewrite a*n = b*n + I 
-        -- I=D*n
-        -- b*n+I
+      -- f = b + S d = a
+      | (d ** f) = notLtSelf $ replace (sym i) ii
+        where
+          h : a=b+S d -> a*n=b*n+(S d)*n
+          h eq_abd = rewrite eq_abd in rewrite (分配則 b (S d) n) in Refl
+          hh : a*n=b*n+(S d)*n -> b*n+I=b*n+(S d)*n
+          hh eq_abd = rewrite sym eq in rewrite sym eq_abd in Refl
+          hhh : b*n+I=b*n+(S d)*n -> I=(S d)*n 
+          hhh eq_bbd = 同じものを足して同じなら同じ' eq_bbd
+          i : I=(S d)*n
+          i = hhh $ hh $ h $ sym f
+          ii : (S d)*n>I
+          ii = 正整数に2以上をかけると2以上 (S d) n
 
   -- 等式の両辺を書き換えるときは片方ずつやっていかないとできない？
-  gg : {a, b, n : N} -> a*n = b*n+I -> n*a = b*n+I
-  gg {a}{b}{n} eq = rewrite sym eq in rewrite mul交換則 a n in Refl
-  ggg : {a, b, n : N} -> n*a = b*n+I -> n*a = n*b+I
-  ggg {a}{b}{n} eq = rewrite eq in rewrite mul交換則 b n in Refl
   nを先に : {a, b, n : N} -> a*n = b*n+I -> n*a = n*b+I 
   nを先に = ggg . gg
+    where
+      gg : {a, b, n : N} -> a*n = b*n+I -> n*a = b*n+I
+      gg {a}{b}{n} eq = rewrite sym eq in rewrite mul交換則 a n in Refl
+      ggg : {a, b, n : N} -> n*a = b*n+I -> n*a = n*b+I
+      ggg {a}{b}{n} eq = rewrite eq in rewrite mul交換則 b n in Refl
 
-  theorem : (n, a, b : N) -> a*n = b*n+I -> n=I
-  theorem O a b eq = nを先に eq
-  theorem (S O) a b eq = Refl
-  theorem (S S n) a b eq = g (S S n) a b eq
---  | R (R gtab) = ?h
-
---g O     a b eq = eq
---g (S O) a b eq = Refl
---g (S S n) a b eq with (eqOrIneq a b)
--- | L eqab = zeroIsNotSucc eq
---正整数に2以上をかけると2以上 (S S m) n =
+  theorem : {n, a, b : N} -> a*n = b*n+I -> n=I
+  theorem {n=O}{a}{b} eq = nを先に eq
+  theorem {n=S O}{a}{b} eq = Refl
+  theorem {n=S S n}{a}{b} eq = void $ nが2以上のとき矛盾 (S S n) a b eq
 
 
 
