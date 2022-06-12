@@ -426,8 +426,7 @@ nの倍数とnの倍数に1を足したものが同じならnは1 = theorem wher
   theorem {n=S S n}{a}{b} eq = void $ nが2以上のとき矛盾 (S S n) a b eq
 
 
-
--- 'd |. n' means 'd devides n'
+-- 'd |. n' means 'd divides n'
 infix 5 |.
 (|.) : (d, n : N) -> Type
 d |. n = (k : N ** n=d*k)
@@ -498,6 +497,20 @@ _2は素数 y (z ** f)
 互いに素 : (x, y : N) -> Type
 互いに素 x y = {d : N} -> (x |. d, y |. d) -> d=I
 
+nが2以上ならばnの倍数に1を足したものはnで割り切れない :
+  {n, a : N} -> {auto gt1 : n>I} -> (n |. n*a+I) -> Void
+nが2以上ならばnの倍数に1を足したものはnで割り切れない {n}{a}{gt1} div with (div)
+  -- f = n*a+I=d*n
+  | (d ** f) = notLtSelf $ replace n1 gt1
+    where
+      ff : d*n=a*n+I
+      ff = rewrite mul交換則 d n in rewrite mul交換則 a n in sym f
+      n1 : n=I
+      n1 = nの倍数とnの倍数に1を足したものが同じならnは1 ff
+    
+--(|.) : (d, n : N) -> Type
+--d |. n = (k : N ** n=d*k)
+
 -- Saidak による素数の無限性の証明
 --差が1だと互いに素 : (x, y : N) -> (x+I=y) -> 互いに素 x y
 --差が1だと互いに素 O y eq = ?h
@@ -543,20 +556,6 @@ data Ns : (len : N) -> Type where
 重複がない xs = 単射 $ indexer xs
 
 --全部素数 : (t -> u) -> Type
-
-
--- deviedesd |. n = (k : N ** n=d*k)
--- _1より大きいnについてnxに1を足したものをnで割り切れない 
-ff : (n, x : N) -> {auto c : n>I} -> Not(n |. n*x+I)
-ff n x h
-  with (h)
-  | (k ** f) = ?x
-
---ltImplyLt2 {m=S a}{n=S b} (LtSucc x) with (ltImplyLt2 x)
---  | (d ** f) = (d ** rewrite f in Refl)
-
--- n*x+I=n*k
--- Iがnの倍数になってしまうことを証明すればいい
 
 -- 素数リストにない素数を作れる : List N -> (p : N ** (isPrime(p)))
 
