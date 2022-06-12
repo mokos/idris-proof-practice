@@ -144,13 +144,6 @@ or消去法 (Right b, _) = b
     | Left  pp = pp
     | Right np = pqp (偽ならば np)
 
--- ダメット→排中律は導出できないっぽい
-排中律を仮定するとダメット :
-  排中律' -> {p, q : Type} -> Either (p->q) (q->p)
-排中律を仮定するとダメット h {p=p}
-  with (h p)
-    | Left pp = Right $ 真ならば pp
-    | Right np = Left $ 偽ならば np
 
 
 ------------- ドモルガン論理 ----------------
@@ -212,6 +205,13 @@ demorgan5 (a, b) (Right nb) = nb b
   with (h {a=P}{b=Not P})
     | Left  pnp = Right $ 肯定ならば否定は否定     pnp
     | Right npp = Left  $ 否定ならば肯定は二重否定 npp
+
+排中律を仮定するとダメット :
+  排中律' -> {p, q : Type} -> Either (p->q) (q->p)
+排中律を仮定するとダメット h {p=p}
+  with (h p)
+    | Left pp = Right $ 真ならば pp
+    | Right np = Left $ 偽ならば np
 
 
 
