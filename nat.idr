@@ -106,10 +106,9 @@ x0 : (n : N) -> n * O = O
 x0 O = Refl
 x0 (S n) = rewrite x0 n in Refl
 
--- l means one
-n1X : (n : N) -> I * n = n
-n1X O = Refl
-n1X (S n) = rewrite n1X n in Refl
+_1x : (n : N) -> I * n = n
+_1x O = Refl
+_1x (S n) = rewrite _1x n in Refl
 
 x1 : (n : N) -> n * I = n
 x1 O = Refl
@@ -239,7 +238,7 @@ lte2ImplyLte {m} (S d ** eq) = L $ lt2ImplyLt (d ** eq)
 小なりイコールの2つの定義は同値 : {m, n : N} -> m<=n <=> m<=.n
 小なりイコールの2つの定義は同値 = (lteImplyLte2, lte2ImplyLte)
 
-lt推移律 : {x, y, z: N} -> x<y /\ y<z -> x<z
+lt推移律 : {x, y, z: N} -> (x<y, y<z) -> x<z
 lt推移律 (_, Lt0) impossible
 lt推移律 (Lt0, LtSucc yz) = Lt0
 lt推移律 (LtSucc xy, LtSucc yz) = LtSucc $ lt推移律 (xy, yz)
@@ -264,6 +263,12 @@ eqOrIneq (S a) (S b) with (eqOrIneq a b)
   | L eq = L $ rewrite eq in Refl
   | R (L lt) = R $ L $ LtSucc lt
   | R (R gt) = R $ R $ LtSucc gt
+
+lteOrGt : (m, n : N) -> (m<=n) || (m>n)
+lteOrGt m n with (eqOrIneq m n)
+  | L eq = L (R eq)
+  | R (L lt) = L (L lt)
+  | R (R gt) = R gt
 
 ltImplyNeq : {m, n : N} -> m<n -> m/=n
 ltImplyNeq Lt0 = zeroIsNotSucc
@@ -291,6 +296,10 @@ eqImplyNlt = ならば否定交換 ltImplyNeq
 eqImplyNgt : {m, n : N} -> m=n -> Not (m>n)
 eqImplyNgt = ならば否定交換 gtImplyNeq
 
+lteImplyNgt : {m, n : N} -> m<=n -> Not(m>n)
+lteImplyNgt (L lt) = ltImplyNgt lt 
+lteImplyNgt (R eq) = eqImplyNgt eq
+
 ltToLte : {m, n : N} -> m<n -> (S m)<=n
 ltToLte {m=O}{n=S O} Lt0 = R Refl
 ltToLte {m=O}{n=S S b} Lt0 = L $ LtSucc $ Lt0
@@ -309,56 +318,121 @@ zeroOrGtZero (S n) = R Lt0
 正整数を足すと大きくなる _ O {nz} = void $ notLt0 nz
 正整数を足すと大きくなる n (S d) = lt2ImplyLt (d ** Refl)
 
-ltAddNat : {k, m, n : N} -> m<n -> m+k<n+k
-ltAddNat {k=O}{m}{n} lt = rewrite add0 n in rewrite add0 m in lt
-ltAddNat {k=S a}{m=O}{n=S c} Lt0 =
+ltAddNat : {m, n : N} -> m<n -> (k : N) -> m+k<n+k
+ltAddNat {m}{n} lt O = rewrite add0 n in rewrite add0 m in lt
+ltAddNat {m=O}{n=S c} Lt0 (S a) =
   rewrite add交換則 (S c) (S a) in 正整数を足すと大きくなる (S a) (S c)
-ltAddNat (LtSucc x) = LtSucc $ ltAddNat x 
+ltAddNat (LtSucc x) k = LtSucc $ ltAddNat x k
 
-ltMulPos : {m, n, k : N} -> {auto nz : k>O} -> m<n -> m*k<n*k
-ltMulPos {k=O}{nz=nz} _ = void $ notLt0 nz
-ltMulPos {k=S a}{n=O} lt = void $ notLt0 lt
-ltMulPos {k=S a}{m=O}{n=S c} lt = Lt0
-ltMulPos {k}{m=S b}{n=S c} (LtSucc x) =
+ltMulPos : {m, n : N} -> m<n -> (k : N) -> {auto nz : k>O} -> m*k<n*k
+ltMulPos {nz} _ O = void $ notLt0 nz
+ltMulPos {n=O} lt (S a) = void $ notLt0 lt
+ltMulPos {m=O}{n=S c} lt (S a) = Lt0
+ltMulPos {m=S b}{n=S c} (LtSucc x) k =
   rewrite add交換則 k (c*k) in
   rewrite add交換則 k (b*k) in
-  ltAddNat {k} (ltMulPos {k}{m=b}{n=c} x)
+  ltAddNat (ltMulPos {m=b}{n=c} x k) k
 
-ltMulNat : {m, n, k : N} -> m<n -> m*k<=n*k
-ltMulNat {m}{n}{k=O} _ = R $ rewrite x0 n in rewrite sym $ x0 m in Refl
-ltMulNat {m}{n}{k=S k} lt = L $ ltMulPos lt
+ltMulNat : {m, n : N} -> m<n -> (k : N) -> m*k<=n*k
+ltMulNat {m}{n} _ O = R $ rewrite x0 n in rewrite sym $ x0 m in Refl
+ltMulNat {m}{n} lt (S k) = L $ ltMulPos lt (S k)
 
-lteMulNat : {m, n, k : N} -> m<=n -> m*k<=n*k
-lteMulNat (R eq) = R $ rewrite eq in Refl
-lteMulNat (L lt) = ltMulNat lt
+lteMulNat : {m, n : N} -> m<=n -> (k : N) -> m*k<=n*k
+lteMulNat (R eq) k = R $ rewrite eq in Refl
+lteMulNat (L lt) k = ltMulNat lt k
 
 大きい方に足しても大きい : {m, n : N} -> m<n -> (k : N) -> m<n+k
 大きい方に足しても大きい Lt0 k = Lt0
-大きい方に足しても大きい (LtSucc x) k =
-  LtSucc $ 大きい方に足しても大きい x k
+大きい方に足しても大きい (LtSucc x) k = LtSucc $ 大きい方に足しても大きい x k
 
-大きい方に正整数をかけても大きい :
-  {m, n : N} -> m<n -> (p : N) -> {auto nz : p>O} -> m<n*p
+大きい方に正整数をかけても大きい : {m, n : N} -> m<n -> (p : N) -> {auto nz : p>O} -> m<n*p
 大きい方に正整数をかけても大きい _ O impossible
 大きい方に正整数をかけても大きい {n} lt (S p) = 
   rewrite xSucc n p in 大きい方に足しても大きい lt (n*p)
 
-
-正整数に2以上をかけると大きくなる :
-  (m, n : N) -> {auto c : (m>O, n>I)} -> m<m*n
+正整数に2以上をかけると大きくなる : (m, n : N) -> {auto c : (m>O, n>I)} -> m<m*n
 正整数に2以上をかけると大きくなる m n {c=(m1, n2)} =
   rewrite mul交換則 m n in
-  rewrite sym $ n1X m in
+  rewrite sym $ _1x m in
   rewrite sym $ mul結合則 n (S O) m in
   rewrite x1 n in
-  ltMulPos {k=m} n2
+  ltMulPos n2 m
+
+正整数に2以上をかけると2以上 : (m, n : N) -> {auto c : (m>O, n>I)} -> I < m*n
+正整数に2以上をかけると2以上 O n {c=(m1, _)} = void $ ltImplyNeq m1 $ Refl
+正整数に2以上をかけると2以上 (S O) n = 正整数に2以上をかけると大きくなる (S O) n 
+正整数に2以上をかけると2以上 (S S m) n =
+  lt推移律 ((LtSucc Lt0), (正整数に2以上をかけると大きくなる (S S m) n))
 
 正整数をかけると減らない : {n, p : N} -> {auto nz : p>O} -> n<=n*p
 正整数をかけると減らない {p=O} impossible
 正整数をかけると減らない {n=O} = R $ Refl
 正整数をかけると減らない {n}{p=S O} = R $ rewrite x1 n in Refl
-正整数をかけると減らない {n=S a}{p=S S b} = 
-  L $ 正整数に2以上をかけると大きくなる (S a) (S S b)
+正整数をかけると減らない {n=S a}{p=S S b} = L $ 正整数に2以上をかけると大きくなる (S a) (S S b)
+
+--t : (n, a, b : N) -> a*n = b*n+I -> n=I
+--t n O b eq = void $ zeroIsNotSucc (replace (addSucc (b*n) O) eq)
+
+足しても同じなら足した数は0 : {a, d : N} -> a+d=a -> d=O
+足しても同じなら足した数は0 {d=O} eq = Refl
+足しても同じなら足した数は0 {a} {d=S dd} eq = void $ notLtSelf {n=a} $ lt2ImplyLt (dd ** eq)
+
+-- 同じものを足して同じなら同じ
+同じものを足して同じなら同じ : {a, b, d : N} -> a+d=b+d -> a=b
+同じものを足して同じなら同じ {a}{b}{d=O} eq = rewrite sym (add0 a) in rewrite sym (add0 b) in eq
+同じものを足して同じなら同じ {a}{b}{d=S dd} eq = 同じものを足して同じなら同じ {a}{b}{d=dd} eq_prev 
+  where
+    eq_prev : a+dd=b+dd
+    eq_prev = succが同じなら同じ $ rewrite sym (addSucc a dd) in replace (addSucc b dd) eq
+
+-- S a + S d = S b + S d
+
+-- f
+nの倍数とnの倍数に1を足したものが同じならnは1 : (n, a, b : N) -> a*n = b*n+I -> n=I
+nの倍数とnの倍数に1を足したものが同じならnは1 = theorem where 
+
+  h : (n, a, b, d : N) -> a=b+S d -> a*n=b*n+(S d)*n
+  h n a b d eq_abd = rewrite eq_abd in rewrite (分配則 b (S d) n) in Refl
+
+  hh : (n, a, b, d : N) -> a*n=b*n+I -> a*n=b*n+(S d)*n -> b*n+I=b*n+(S d)*n
+  hh n a b d eq eq_abd = rewrite sym eq in rewrite sym eq_abd in Refl
+  hhh : (n, b, d : N) -> b*n+I=b*n+(S d)*n -> I=(S d)*n 
+
+
+  g : (n, a, b : N) -> {auto c : n>I} -> a*n = b*n+I -> n=I
+  g n a b eq with (lteOrGt a b)
+    -- 以下の2つによって矛盾を導く。
+    -- 1. a<=b -> a*n<=b*n -> not (a*n>b*n)
+    -- 2. eq -> a*n>.b*n -> a*n>b*n
+    | L lte = void $ lteImplyNgt (lteMulNat lte n) $ lt2ImplyLt (O ** sym eq)
+    | R gt_ab with (ltImplyLt2 gt_ab)
+      | (d ** f) = ?h-- f = a = b + S d
+        -- a*n = b*n + D*n
+        -- a*n = b*n + I
+        -- rewrite a*n = b*n + I 
+        -- I=D*n
+        -- b*n+I
+
+  -- 等式の両辺を書き換えるときは片方ずつやっていかないとできない？
+  gg : {a, b, n : N} -> a*n = b*n+I -> n*a = b*n+I
+  gg {a}{b}{n} eq = rewrite sym eq in rewrite mul交換則 a n in Refl
+  ggg : {a, b, n : N} -> n*a = b*n+I -> n*a = n*b+I
+  ggg {a}{b}{n} eq = rewrite eq in rewrite mul交換則 b n in Refl
+  nを先に : {a, b, n : N} -> a*n = b*n+I -> n*a = n*b+I 
+  nを先に = ggg . gg
+
+  theorem : (n, a, b : N) -> a*n = b*n+I -> n=I
+  theorem O a b eq = nを先に eq
+  theorem (S O) a b eq = Refl
+  theorem (S S n) a b eq = g (S S n) a b eq
+--  | R (R gtab) = ?h
+
+--g O     a b eq = eq
+--g (S O) a b eq = Refl
+--g (S S n) a b eq with (eqOrIneq a b)
+-- | L eqab = zeroIsNotSucc eq
+--正整数に2以上をかけると2以上 (S S m) n =
+
 
 
 -- 'd |. n' means 'd devides n'
@@ -444,15 +518,18 @@ _2は素数 y (z ** f)
 単射 : (t -> u) -> Type
 単射 f {t} = (x, y : t) -> (f x = f y) -> (x = y) 
 
-f : Fin 2 -> N
-f FZ = O 
-f (FS FZ) = S O
+--f : Fin 2 -> N
+--f FZ = O 
+--f (FS FZ) = S O
+--
+--fは単射 : 単射 Main.f
+--fは単射 FZ FZ eq = Refl  
+--fは単射 FZ (FS FZ) eq = void $ (ltImplyNeq Lt0) eq
+--fは単射 (FS FZ) (FS FZ) eq = Refl
+--fは単射 (FS FZ) FZ eq = void $ (gtImplyNeq Lt0) eq
 
-fは単射 : 単射 Main.f
-fは単射 FZ FZ eq = Refl  
-fは単射 FZ (FS FZ) eq = void $ (ltImplyNeq Lt0) eq
-fは単射 (FS FZ) (FS FZ) eq = Refl
-fは単射 (FS FZ) FZ eq = void $ (gtImplyNeq Lt0) eq
+
+-- ref. https://gist.github.com/cheery/696db4cd50370e19adaa77909eb6f908#file-finitesets-idr-L51
 
 data Nth : (xs : List a) -> Type where
   XZ : Nth (x :: xs)
@@ -473,11 +550,23 @@ data Ns : (len : N) -> Type where
 重複がない : List n -> Type
 重複がない xs = 単射 $ indexer xs
 
-全部素数 : (t -> u) -> Type
-全部素数 f {t} = (x : t) -> isPrime (f x)
+--全部素数 : (t -> u) -> Type
 
-素数リストにない素数を作れる : List N -> (p : N ** (isPrime(p)))
---m <. n = (d : N ** m + S d = n)
+
+-- deviedesd |. n = (k : N ** n=d*k)
+-- _1より大きいnについてnxに1を足したものをnで割り切れない 
+ff : (n, x : N) -> {auto c : n>I} -> Not(n |. n*x+I)
+ff n x h
+  with (h)
+  | (k ** f) = ?x
+
+--ltImplyLt2 {m=S a}{n=S b} (LtSucc x) with (ltImplyLt2 x)
+--  | (d ** f) = (d ** rewrite f in Refl)
+
+-- n*x+I=n*k
+-- Iがnの倍数になってしまうことを証明すればいい
+
+-- 素数リストにない素数を作れる : List N -> (p : N ** (isPrime(p)))
 
 main : IO ()
 main = do
