@@ -507,17 +507,18 @@ nが2以上ならばnの倍数に1を足したものはnで割り切れない {n
       ff = rewrite mul交換則 d n in rewrite mul交換則 a n in sym f
       n1 : n=I
       n1 = nの倍数とnの倍数に1を足したものが同じならnは1 ff
-    
---(|.) : (d, n : N) -> Type
---d |. n = (k : N ** n=d*k)
 
+listMul : List N -> N
+listMul [] = I
+listMul (x:xs) = x*listMul(xs)
+    
 -- Saidak による素数の無限性の証明
 --差が1だと互いに素 : (x, y : N) -> (x+I=y) -> 互いに素 x y
 --差が1だと互いに素 O y eq = ?h
   
 
 -- ユークリッドの補題
---f : (p : N) -> {c : prime p} -> (a*b) |. p -> a |. p || b |. p
+--f : (p : N) -> {c : prime p} -> p |. (a*b) -> p |. a || p |. b
 
 -- set
 単射 : (t -> u) -> Type
