@@ -1,9 +1,12 @@
-import Data.Fin
 %default total
 
--- logic
+-- 組み込みの機能で、使うものは以下の2つ。
+-- 1. (=) 関係 (=, sym, rewrite, replace)
+-- 2. Not 関係 (Not, Void, void)
+-- それ以外は基本自前で定義していく。
 
--- 同値
+
+-- 命題の同値演算子
 infix 0 <=>
 (<=>) : Type -> Type -> Type
 p <=> q = (p->q, q->p)
@@ -20,34 +23,38 @@ a /\ b = (a, b)
 ならば否定交換 : (a -> Not b) -> (b -> Not a)
 ならば否定交換 anb b a = (anb a) b
 
--- not equal
+
+-- 不等号
 (/=) : a -> a -> Type
 x /= y = Not (x=y)
 
-symnot : a /= b -> b /= a
-symnot abn ba = abn $ sym ba
+不等号の対称律 : a /= b -> b /= a
+不等号の対称律 abn ba = abn $ sym ba
+
 
 -- 自然数
---- ペアノの公理 1, 2
+--- (S (S n)) を S S n と書けるようにする
 prefix 99 `S`
 
-data N = O | S N
-Show N where
-  show O = "0"
-  show (S n) = "S" ++ show n
+--- ペアノの公理 1, 2
+---- S は successor (後続数 = 次の数）のこと
+---- 以下、succとも書く
+data N = O   -- 1. ゼロは自然数
+       | S N -- 2. すべての自然数には次の数があり、それも自然数
 
---- ペアノの公理 3
+--- ペアノの公理 3. 0は後続数ではない
 zeroIsNotSucc : {n : N} -> O /= S n
+-- Nの定義からOが後続数になり得ないことを証明できる
 zeroIsNotSucc Refl impossible
 
 succIsNotZero : {n : N} -> S n /= O
-succIsNotZero = symnot zeroIsNotSucc
+succIsNotZero = 不等号の対称律 zeroIsNotSucc
 
---- ペアノの公理 4
+--- ペアノの公理 4. succの単射性
 違うならsuccも違う : {m, n : N} -> m/=n -> S m/=S n
-違うならsuccも違う = believe_me "axiom"
+違うならsuccも違う = believe_me "axiom" -- 公理として定義
 
--- cong
+-- 標準ライブラリのcongと同等
 同じなら関数適用しても同じ : {f : a->b} -> {x, y : a} -> x=y -> f x = f y
 同じなら関数適用しても同じ {f}{x}{y} eq = rewrite eq in Refl
 
@@ -508,32 +515,11 @@ nが2以上ならばnの倍数に1を足したものはnで割り切れない {n
       n1 : n=I
       n1 = nの倍数とnの倍数に1を足したものが同じならnは1 ff
 
-listMul : List N -> N
-listMul [] = I
-listMul (x:xs) = x*listMul(xs)
-    
--- Saidak による素数の無限性の証明
---差が1だと互いに素 : (x, y : N) -> (x+I=y) -> 互いに素 x y
---差が1だと互いに素 O y eq = ?h
-  
 
--- ユークリッドの補題
---f : (p : N) -> {c : prime p} -> p |. (a*b) -> p |. a || p |. b
 
 -- set
 単射 : (t -> u) -> Type
 単射 f {t} = (x, y : t) -> (f x = f y) -> (x = y) 
-
---f : Fin 2 -> N
---f FZ = O 
---f (FS FZ) = S O
---
---fは単射 : 単射 Main.f
---fは単射 FZ FZ eq = Refl  
---fは単射 FZ (FS FZ) eq = void $ (ltImplyNeq Lt0) eq
---fは単射 (FS FZ) (FS FZ) eq = Refl
---fは単射 (FS FZ) FZ eq = void $ (gtImplyNeq Lt0) eq
-
 
 -- ref. https://gist.github.com/cheery/696db4cd50370e19adaa77909eb6f908#file-finitesets-idr-L51
 
@@ -550,15 +536,9 @@ data Ns : (len : N) -> Type where
   Nil : Ns O
   (::) : (x : N) -> (xs : Ns len) -> Ns (S len)
 
---len : {n : N} -> FinNats n -> N
---len {n} xs = n
-
 重複がない : List n -> Type
 重複がない xs = 単射 $ indexer xs
 
---全部素数 : (t -> u) -> Type
-
--- 素数リストにない素数を作れる : List N -> (p : N ** (isPrime(p)))
 
 main : IO ()
 main = do
