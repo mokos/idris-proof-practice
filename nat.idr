@@ -394,48 +394,9 @@ lteMulNat (L lt) k = ltMulNat lt k
       eq_prev : a+dd=b+dd
       eq_prev = succが同じなら同じ $ rewrite sym (addSucc a dd) in replace (addSucc b dd) eq
 
-同じものを足して同じなら同じ' : {a, b, d : N} -> d+a=d+b -> a=b
-同じものを足して同じなら同じ' {a}{b}{d} eq =
+同じものに足して同じなら同じ : {a, b, d : N} -> d+a=d+b -> a=b
+同じものに足して同じなら同じ {a}{b}{d} eq =
   同じものを足して同じなら同じ {a}{b}{d} $ rewrite (add交換則 a d) in replace (add交換則 d b) eq
-
-nの倍数とnの倍数に1を足したものが同じならnは1 : {n, a, b : N} -> a*n = b*n+I -> n=I
-nの倍数とnの倍数に1を足したものが同じならnは1 = theorem where 
-
-  nが2以上のとき矛盾 : (n, a, b : N) -> {auto c : n>I} -> a*n = b*n+I -> Void
-  nが2以上のとき矛盾 n a b eq with (lteOrGt a b)
-    -- a<=bのとき、以下の2つによって矛盾を導く。
-    -- 1. a<=b -> a*n<=b*n -> not (a*n>b*n)
-    -- 2. eq -> a*n>.b*n -> a*n>b*n
-    | L lte = lteImplyNgt (lteMulNat lte n) $ lt2ImplyLt (O ** sym eq)
-    -- a>bのとき、a*n>b*nなのでa*n=b*n+1になりようがないことを示す。
-    | R gt_ab with (ltImplyLt2 gt_ab)
-      -- f = b + S d = a
-      | (d ** f) = notLtSelf $ replace (sym i) ii
-        where
-          h : a=b+S d -> a*n=b*n+(S d)*n
-          h eq_abd = rewrite eq_abd in rewrite (分配則 b (S d) n) in Refl
-          hh : a*n=b*n+(S d)*n -> b*n+I=b*n+(S d)*n
-          hh eq_abd = rewrite sym eq in rewrite sym eq_abd in Refl
-          hhh : b*n+I=b*n+(S d)*n -> I=(S d)*n 
-          hhh eq_bbd = 同じものを足して同じなら同じ' eq_bbd
-          i : I=(S d)*n
-          i = hhh $ hh $ h $ sym f
-          ii : (S d)*n>I
-          ii = 正整数に2以上をかけると2以上 (S d) n
-
-  -- 等式の両辺を書き換えるときは片方ずつやっていかないとできない？
-  nを先に : {a, b, n : N} -> a*n = b*n+I -> n*a = n*b+I 
-  nを先に = ggg . gg
-    where
-      gg : {a, b, n : N} -> a*n = b*n+I -> n*a = b*n+I
-      gg {a}{b}{n} eq = rewrite sym eq in rewrite mul交換則 a n in Refl
-      ggg : {a, b, n : N} -> n*a = b*n+I -> n*a = n*b+I
-      ggg {a}{b}{n} eq = rewrite eq in rewrite mul交換則 b n in Refl
-
-  theorem : {n, a, b : N} -> a*n = b*n+I -> n=I
-  theorem {n=O}{a}{b} eq = nを先に eq
-  theorem {n=S O}{a}{b} eq = Refl
-  theorem {n=S S n}{a}{b} eq = void $ nが2以上のとき矛盾 (S S n) a b eq
 
 
 -- 'd |. n' means 'd divides n'
@@ -471,15 +432,10 @@ d |. n = (k : N ** n=d*k)
 正整数を割り切れるのはそれ以下の正整数' :
   {n, d, k : N} -> {auto nz : n>O} -> n=d*k -> (O<d, d<=n)
 正整数を割り切れるのはそれ以下の正整数' {d}{k} ndk =
-  正整数を割り切れるのはそれ以下の正整数 {d=k}{k=d} 
-    (rewrite mul交換則 k d in ndk)
+  正整数を割り切れるのはそれ以下の正整数 {d=k}{k=d} (rewrite mul交換則 k d in ndk)
 
---Iを割り切れるのはIのみ : {k : N} -> k |. I -> k=I
---Iを割り切れるのはIのみ {k} (d ** eq)
---  with (正整数を割り切れるのはそれ以下の正整数 eq)
---  | (nz, L lt1) = ?h
---  | (_,  R eq1) = eq1
 
+-- 素数
 isPrime : (x : N) -> Type
 isPrime x = (d : N) -> (d |. x) -> xor (d=I) (d=x)
 
@@ -509,18 +465,57 @@ _2は素数 y (z ** f)
 互いに素 : (x, y : N) -> Type
 互いに素 x y = {d : N} -> (x |. d, y |. d) -> d=I
 
-nが2以上ならばnの倍数に1を足したものはnで割り切れない :
+
+-- ユークリッドやサイダックの素数の無限性の証明に必要な性質
+naとnb十1が同じならnは1 : {n, a, b : N} -> a*n = b*n+I -> n=I
+naとnb十1が同じならnは1 = theorem where 
+
+  nが2以上のとき矛盾 : (n, a, b : N) -> {auto c : n>I} -> a*n = b*n+I -> Void
+  nが2以上のとき矛盾 n a b eq with (lteOrGt a b)
+    -- a<=bのとき、以下の2つによって矛盾を導く。
+    -- 1. a<=b -> a*n<=b*n -> not (a*n>b*n)
+    -- 2. eq -> a*n>.b*n -> a*n>b*n
+    | L lte = lteImplyNgt (lteMulNat lte n) $ lt2ImplyLt (O ** sym eq)
+    -- a>bのとき、a*n>b*nなのでa*n=b*n+1になりようがないことを示す。
+    | R gt_ab with (ltImplyLt2 gt_ab)
+      -- f = b + S d = a
+      | (d ** f) = notLtSelf $ replace (sym i) ii
+        where
+          h : a=b+S d -> a*n=b*n+(S d)*n
+          h eq_abd = rewrite eq_abd in rewrite (分配則 b (S d) n) in Refl
+          hh : a*n=b*n+(S d)*n -> b*n+I=b*n+(S d)*n
+          hh eq_abd = rewrite sym eq in rewrite sym eq_abd in Refl
+          hhh : b*n+I=b*n+(S d)*n -> I=(S d)*n 
+          hhh eq_bbd = 同じものに足して同じなら同じ eq_bbd
+          i : I=(S d)*n
+          i = hhh $ hh $ h $ sym f
+          ii : (S d)*n>I
+          ii = 正整数に2以上をかけると2以上 (S d) n
+
+  -- 等式の両辺を書き換えるときは片方ずつやっていかないとできない？
+  nを先に : {a, b, n : N} -> a*n = b*n+I -> n*a = n*b+I 
+  nを先に = ggg . gg
+    where
+      gg : {a, b, n : N} -> a*n = b*n+I -> n*a = b*n+I
+      gg {a}{b}{n} eq = rewrite sym eq in rewrite mul交換則 a n in Refl
+      ggg : {a, b, n : N} -> n*a = b*n+I -> n*a = n*b+I
+      ggg {a}{b}{n} eq = rewrite eq in rewrite mul交換則 b n in Refl
+
+  theorem : {n, a, b : N} -> a*n = b*n+I -> n=I
+  theorem {n=O}{a}{b} eq = nを先に eq
+  theorem {n=S O}{a}{b} eq = Refl
+  theorem {n=S S n}{a}{b} eq = void $ nが2以上のとき矛盾 (S S n) a b eq
+
+nが2以上ならna十1はnで割り切れない :
   {n, a : N} -> {auto gt1 : n>I} -> (n |. n*a+I) -> Void
-nが2以上ならばnの倍数に1を足したものはnで割り切れない {n}{a}{gt1} div with (div)
+nが2以上ならna十1はnで割り切れない {n}{a}{gt1} div with (div)
   -- f = n*a+I=d*n
-  | (d ** f) = notLtSelf $ replace n1 gt1
+  | (d ** f) = notLtSelf $ replace nは1 gt1
     where
       ff : d*n=a*n+I
       ff = rewrite mul交換則 d n in rewrite mul交換則 a n in sym f
-      n1 : n=I
-      n1 = nの倍数とnの倍数に1を足したものが同じならnは1 ff
-
-
+      nは1 : n=I
+      nは1 = naとnb十1が同じならnは1 ff
 
 -- set
 単射 : (t -> u) -> Type
