@@ -180,7 +180,12 @@ mul結合則 (S a) b c =
 積が0なら片方は0 {m=S m}{n=S n} eq = void $ succIsNotZero eq
 
 
+
 -- 不等式
+-- lt  : <  less than
+-- lte : <= less than equal
+-- gt  : >  greater than
+-- gte : >= greater than equal
 
 data (<) : (m, n : N) -> Type where
   Lt0 : O < S n
@@ -322,7 +327,7 @@ zeroOrGtZero O = L Refl
 zeroOrGtZero (S n) = R Lt0
 
 正整数を足すと大きくなる : (n, p : N) -> {auto nz : p>O} -> n<n+p
-正整数を足すと大きくなる _ O {nz} = void $ notLt0 nz
+正整数を足すと大きくなる _ O {nz} impossible
 正整数を足すと大きくなる n (S d) = lt2ImplyLt (d ** Refl)
 
 ltAddNat : {m, n : N} -> m<n -> (k : N) -> m+k<n+k
@@ -332,7 +337,7 @@ ltAddNat {m=O}{n=S c} Lt0 (S a) =
 ltAddNat (LtSucc x) k = LtSucc $ ltAddNat x k
 
 ltMulPos : {m, n : N} -> m<n -> (k : N) -> {auto nz : k>O} -> m*k<n*k
-ltMulPos {nz} _ O = void $ notLt0 nz
+ltMulPos {nz} _ O impossible
 ltMulPos {n=O} lt (S a) = void $ notLt0 lt
 ltMulPos {m=O}{n=S c} lt (S a) = Lt0
 ltMulPos {m=S b}{n=S c} (LtSucc x) k =
@@ -366,7 +371,7 @@ lteMulNat (L lt) k = ltMulNat lt k
   ltMulPos n2 m
 
 正整数に2以上をかけると2以上 : (m, n : N) -> {auto c : (m>O, n>I)} -> I < m*n
-正整数に2以上をかけると2以上 O n {c=(m1, _)} = void $ ltImplyNeq m1 $ Refl
+正整数に2以上をかけると2以上 O n {c=(m1, _)} impossible
 正整数に2以上をかけると2以上 (S O) n = 正整数に2以上をかけると大きくなる (S O) n 
 正整数に2以上をかけると2以上 (S S m) n =
   lt推移律 ((LtSucc Lt0), (正整数に2以上をかけると大きくなる (S S m) n))
@@ -494,7 +499,7 @@ _2は素数 y (z ** f)
   | (yp, R eq) = R (eq, rewrite eq in gtImplyNeq $ LtSucc Lt0)
   | (yp, L lt) 
     with (y)
-    | O = void $ notLt0 yp
+    | O impossible
     | S O = L (Refl, ltImplyNeq $ LtSucc Lt0)
     | (S S a)
       with (lt)
