@@ -181,7 +181,7 @@ mul結合則 (S a) b c =
 
 
 
--- 不等式
+-- 不等号
 -- lt  : <  less than
 -- lte : <= less than equal
 -- gt  : >  greater than
