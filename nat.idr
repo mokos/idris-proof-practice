@@ -1,9 +1,11 @@
 %default total
 
--- 組み込みの機能で、使うものは以下の2つ。
--- 1. (=) 関係 (=, sym, rewrite, replace)
--- 2. Not 関係 (Not, Void, void)
--- それ以外は基本自前で定義していく。
+-- ビルトインの機能は使う
+-- - Pair型
+-- - (=) 関係 (=, sym, rewrite, replace)
+-- - Not 関係 (Not, Void, void)
+-- - 依存型 (x : TYpe ** P a)
+-- それ以外(Preludeにあるもの)は基本自前で定義していく。
 
 
 -- 命題の同値演算子
@@ -227,6 +229,9 @@ ltImplyLt2 {m=O}{n=S d} Lt0 = (d ** Refl)
 ltImplyLt2 {m=S a}{n=S b} (LtSucc x) with (ltImplyLt2 x)
   | (d ** f) = (d ** rewrite f in Refl)
 
+gtImplyGt2 : {m, n : N} -> m>n -> m>.n
+gtImplyGt2 = ltImplyLt2
+
 lt2ImplyLt : {m, n : N} -> m<.n -> m<n
 lt2ImplyLt {m=O} (d ** eq) = rewrite sym eq in Lt0
 lt2ImplyLt {m}{n=O} (d ** eq) =
@@ -400,7 +405,7 @@ lteMulNat' {m}{n} lte k = rewrite mul交換則 k m in rewrite mul交換則 k n i
   同じものを足して同じなら同じ {a}{b}{d} $ rewrite (add交換則 a d) in replace (add交換則 d b) eq
 
 
--- 'd |. n' means 'd divides n'
+-- d |. n とは、 dがnを割り切ること（nはdの倍数）
 infix 5 |.
 (|.) : (d, n : N) -> Type
 d |. n = (k : N ** n=d*k)
@@ -467,11 +472,8 @@ _2は素数 y (z ** f)
 互いに素 x y = {d : N} -> (d |. x, d |. y) -> d=I
 
 
-
--- memo
--- listにnが入っていれば、listMulはnの倍数
-
 -- ユークリッドやサイダックの素数の無限性の証明に必要な性質
+
 naとnb十1が同じならnは1 : {n, a, b : N} -> n*a = n*b+I -> n=I
 naとnb十1が同じならnは1 {n=O}    {a}{b} eq = eq
 naとnb十1が同じならnは1 {n=S O}  {a}{b} eq = Refl
@@ -481,9 +483,9 @@ naとnb十1が同じならnは1 {n=S S k}{a}{b} eq =
     where
       nが2以上のとき矛盾 : (n, a, b : N) -> {auto c : n>I} -> n*a = n*b+I -> Void
       nが2以上のとき矛盾 n a b eq with (lteOrGt a b)
-       | L lte   = lteImplyNgt (lteMulNat' lte n) $ lt2ImplyLt (O ** sym eq)
-       | R gt_ab with (ltImplyLt2 gt_ab)
-         | (d ** f) = notLtSelf I小なりI
+       | L a_lte_b   = lteImplyNgt (lteMulNat' a_lte_b n) $ lt2ImplyLt (O ** sym eq)
+       | R a_gt__b
+         with (gtImplyGt2 a_gt__b) | (d ** f) = notLtSelf i_lt_i
            where
              f1 : a=b+S d
              f1 = sym f
@@ -499,18 +501,22 @@ naとnb十1が同じならnは1 {n=S S k}{a}{b} eq =
              -- n>=2、S d>=1なので、積は2以上になるが、右辺は1なので矛盾する
              f5 : n*(S d)>I
              f5 = rewrite mul交換則 n (S d) in 正整数に2以上をかけると2以上 (S d) n
-             I小なりI : I<I
-             I小なりI = replace f4 f5
+             i_lt_i : I<I
+             i_lt_i = replace f4 f5
 
 
 nが2以上ならna十1はnで割り切れない :
-  {n, a : N} -> {auto gt1 : n>I} -> (n |. n*a+I) -> Void
-nが2以上ならna十1はnで割り切れない {n}{a}{gt1} div with (div)
+  {n, a : N} -> {auto nは2以上 : n>I} -> (n |. n*a+I) -> Void
+nが2以上ならna十1はnで割り切れない {n}{a}{nは2以上} div with (div)
   -- f = n*a+I=d*n
-  | (d ** f) = notLtSelf $ replace nは1 gt1
+  | (d ** f) = notLtSelf i_lt_i
     where
       nは1 : n=I
       nは1 = naとnb十1が同じならnは1 $ sym f
+
+      i_lt_i : I<I
+      i_lt_i = replace nは1 nは2以上
+
 
 -- set
 単射 : (t -> u) -> Type
