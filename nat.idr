@@ -351,6 +351,9 @@ lteMulNat : {m, n : N} -> m<=n -> (k : N) -> m*k<=n*k
 lteMulNat (R eq) k = R $ rewrite eq in Refl
 lteMulNat (L lt) k = ltMulNat lt k
 
+lteMulNat' : {m, n : N} -> m<=n -> (k : N) -> k*m<=k*n
+lteMulNat' {m}{n} lte k = rewrite mul交換則 k m in rewrite mul交換則 k n in lteMulNat lte k
+
 大きい方に足しても大きい : {m, n : N} -> m<n -> (k : N) -> m<n+k
 大きい方に足しても大きい Lt0 k = Lt0
 大きい方に足しても大きい (LtSucc x) k = LtSucc $ 大きい方に足しても大きい x k
@@ -464,45 +467,41 @@ _2は素数 y (z ** f)
 互いに素 x y = {d : N} -> (d |. x, d |. y) -> d=I
 
 
+
+-- memo
+-- listにnが入っていれば、listMulはnの倍数
+
 -- ユークリッドやサイダックの素数の無限性の証明に必要な性質
-anとbn十1が同じならnは1 : {n, a, b : N} -> a*n = b*n+I -> n=I
-anとbn十1が同じならnは1 = theorem where 
-
-  nが2以上のとき矛盾 : (n, a, b : N) -> {auto c : n>I} -> a*n = b*n+I -> Void
-  nが2以上のとき矛盾 n a b eq with (lteOrGt a b)
-    -- a<=bのとき、以下の2つによって矛盾を導く。
-    -- 1. a<=b -> a*n<=b*n -> not (a*n>b*n)
-    -- 2. eq -> a*n>.b*n -> a*n>b*n
-    | L lte = lteImplyNgt (lteMulNat lte n) $ lt2ImplyLt (O ** sym eq)
-    -- a>bのとき、a*n>b*nなのでa*n=b*n+1になりようがないことを示す。
-    | R gt_ab with (ltImplyLt2 gt_ab)
-      -- f = b + S d = a
-      | (d ** f) = notLtSelf $ replace (sym i) ii
-        where
-          h : a=b+S d -> a*n=b*n+(S d)*n
-          h eq_abd = rewrite eq_abd in rewrite (分配則 b (S d) n) in Refl
-          hh : a*n=b*n+(S d)*n -> b*n+I=b*n+(S d)*n
-          hh eq_abd = rewrite sym eq in rewrite sym eq_abd in Refl
-          hhh : b*n+I=b*n+(S d)*n -> I=(S d)*n 
-          hhh eq_bbd = 同じものに足して同じなら同じ eq_bbd
-          i : I=(S d)*n
-          i = hhh $ hh $ h $ sym f
-          ii : (S d)*n>I
-          ii = 正整数に2以上をかけると2以上 (S d) n
-
-  -- 等式の両辺を書き換えるときは片方ずつやっていかないとできない？
-  nを先に : {a, b, n : N} -> a*n = b*n+I -> n*a = n*b+I 
-  nを先に = ggg . gg
+naとnb十1が同じならnは1 : {n, a, b : N} -> n*a = n*b+I -> n=I
+naとnb十1が同じならnは1 {n=O}    {a}{b} eq = eq
+naとnb十1が同じならnは1 {n=S O}  {a}{b} eq = Refl
+naとnb十1が同じならnは1 {n=S S k}{a}{b} eq =
+  -- 矛盾型(Void)が返ってきたとき、void関数によりどんな結論も導ける
+  void $ nが2以上のとき矛盾 (S S k) a b eq
     where
-      gg : {a, b, n : N} -> a*n = b*n+I -> n*a = b*n+I
-      gg {a}{b}{n} eq = rewrite sym eq in rewrite mul交換則 a n in Refl
-      ggg : {a, b, n : N} -> n*a = b*n+I -> n*a = n*b+I
-      ggg {a}{b}{n} eq = rewrite eq in rewrite mul交換則 b n in Refl
+      nが2以上のとき矛盾 : (n, a, b : N) -> {auto c : n>I} -> n*a = n*b+I -> Void
+      nが2以上のとき矛盾 n a b eq with (lteOrGt a b)
+       | L lte   = lteImplyNgt (lteMulNat' lte n) $ lt2ImplyLt (O ** sym eq)
+       | R gt_ab with (ltImplyLt2 gt_ab)
+         | (d ** f) = notLtSelf I小なりI
+           where
+             f1 : a=b+S d
+             f1 = sym f
+             -- na=nb+1 に eq1 を代入
+             f2 : n*(b+(S d))=n*b+I
+             f2 = rewrite sym f1 in eq
+             -- 左辺を展開
+             f3 : n*b+n*(S d)=n*b+I 
+             f3 = rewrite sym (分配則' n b (S d)) in f2
+             -- 両辺のnbを取り除く
+             f4 : n*(S d)=I
+             f4 = 同じものに足して同じなら同じ f3
+             -- n>=2、S d>=1なので、積は2以上になるが、右辺は1なので矛盾する
+             f5 : n*(S d)>I
+             f5 = rewrite mul交換則 n (S d) in 正整数に2以上をかけると2以上 (S d) n
+             I小なりI : I<I
+             I小なりI = replace f4 f5
 
-  theorem : {n, a, b : N} -> a*n = b*n+I -> n=I
-  theorem {n=O}{a}{b} eq = nを先に eq
-  theorem {n=S O}{a}{b} eq = Refl
-  theorem {n=S S n}{a}{b} eq = void $ nが2以上のとき矛盾 (S S n) a b eq
 
 nが2以上ならna十1はnで割り切れない :
   {n, a : N} -> {auto gt1 : n>I} -> (n |. n*a+I) -> Void
@@ -510,10 +509,8 @@ nが2以上ならna十1はnで割り切れない {n}{a}{gt1} div with (div)
   -- f = n*a+I=d*n
   | (d ** f) = notLtSelf $ replace nは1 gt1
     where
-      ff : d*n=a*n+I
-      ff = rewrite mul交換則 d n in rewrite mul交換則 a n in sym f
       nは1 : n=I
-      nは1 = anとbn十1が同じならnは1 ff
+      nは1 = naとnb十1が同じならnは1 $ sym f
 
 -- set
 単射 : (t -> u) -> Type
