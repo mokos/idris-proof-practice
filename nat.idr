@@ -36,16 +36,14 @@ x /= y = Not (x=y)
 --- (S (S n)) を S S n と書けるようにする
 prefix 99 `S`
 
---- ペアノの公理 1, 2
----- S は successor (後続数 = 次の数）のこと
----- 以下、succとも書く
-data N = O   -- 1. ゼロは自然数
-       | S N -- 2. すべての自然数には次の数があり、それも自然数
+--- ペアノの公理
+-- 1. ゼロは自然数
+-- 2. すべての自然数には次の数（successor : 後続数）があり、それも自然数
+data N = O | S N
 
 --- ペアノの公理 3. 0は後続数ではない
 zeroIsNotSucc : {n : N} -> O /= S n
--- Nの定義からOが後続数になり得ないことを証明できる
-zeroIsNotSucc Refl impossible
+zeroIsNotSucc Refl impossible -- Nの定義からOが後続数になり得ないことを証明できる
 
 succIsNotZero : {n : N} -> S n /= O
 succIsNotZero = 不等号の対称律 zeroIsNotSucc
@@ -467,8 +465,8 @@ _2は素数 y (z ** f)
 
 
 -- ユークリッドやサイダックの素数の無限性の証明に必要な性質
-naとnb十1が同じならnは1 : {n, a, b : N} -> a*n = b*n+I -> n=I
-naとnb十1が同じならnは1 = theorem where 
+anとbn十1が同じならnは1 : {n, a, b : N} -> a*n = b*n+I -> n=I
+anとbn十1が同じならnは1 = theorem where 
 
   nが2以上のとき矛盾 : (n, a, b : N) -> {auto c : n>I} -> a*n = b*n+I -> Void
   nが2以上のとき矛盾 n a b eq with (lteOrGt a b)
@@ -515,7 +513,7 @@ nが2以上ならna十1はnで割り切れない {n}{a}{gt1} div with (div)
       ff : d*n=a*n+I
       ff = rewrite mul交換則 d n in rewrite mul交換則 a n in sym f
       nは1 : n=I
-      nは1 = naとnb十1が同じならnは1 ff
+      nは1 = anとbn十1が同じならnは1 ff
 
 -- set
 単射 : (t -> u) -> Type
