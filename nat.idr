@@ -41,6 +41,7 @@ prefix 99 `S`
 --- ペアノの公理
 -- 1. ゼロは自然数
 -- 2. すべての自然数には次の数（successor : 後続数）があり、それも自然数
+
 data N = O | S N
 
 --- ペアノの公理 3. 0は後続数ではない
@@ -484,8 +485,8 @@ naとnb十1が同じならnは1 {n=S S k}{a}{b} eq =
       nが2以上のとき矛盾 : (n, a, b : N) -> {auto c : n>I} -> n*a = n*b+I -> Void
       nが2以上のとき矛盾 n a b eq with (lteOrGt a b)
        | L a_lte_b   = lteImplyNgt (lteMulNat' a_lte_b n) $ lt2ImplyLt (O ** sym eq)
-       | R a_gt__b
-         with (gtImplyGt2 a_gt__b) | (d ** f) = notLtSelf i_lt_i
+       | R a_gt__b with (gtImplyGt2 a_gt__b)
+         | (d ** f) = notLtSelf i_lt_i
            where
              f1 : a=b+S d
              f1 = sym f
